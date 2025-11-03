@@ -9,56 +9,59 @@
     }
     import "../routes/global.css";
 
-    let position = writable({ x: -13, y: 93 });
+    let position = writable({ x: 30, y: 93 }); // Adjusted start: (30%, 93%)
     let isAnimating = false;
-    let angle = 0;
+    let angle = -90; // Start at bottom of circle
 
     function moveShipCircular() {
         if (!isAnimating) {
             isAnimating = true;
-            const radius = 200;
-            const centerX = 50;
-            const centerY = 50;
-            let phase = 0; // 0: moving towards container, 1: circular motion, 2: return home
-            let startX = get(position).x;
-            let startY = get(position).y;
+            const radius = 20; // 20% of screen width
+            const centerX = 50; // Screen center (50%)
+            const centerY = 50; // Screen center (50%)
+            const rotations = 3; // 3 rotations
+            let phase = 0; // 0: approach, 1: circle, 2: return
+            let startX = get(position).x; // 30%
+            let startY = get(position).y; // 93%
 
             function animate() {
                 if (phase === 0) {
-                    //  towards login container
+                    // Move toward entry point (50%, 69%)
                     position.update((pos) => ({
-                        x: pos.x + 2,
-                        y: pos.y - 0.5,
+                        x: pos.x + 0.5, // Move 20% in ~40 frames
+                        y: pos.y - 0.6, // Move from 93% to 69% (24% in ~40 frames)
                     }));
 
-                    if (get(position).x > 30) {
+                    if (get(position).x >= 50) {
                         phase = 1;
+                        // Ensure exact entry point
+                        position.set({ x: 50, y: 69 });
                     }
                 } else if (phase === 1) {
+                    // Circular motion: 3 rotations
                     angle -= 3;
                     const newX =
-                        centerX +
-                        (radius / 2) * Math.cos((angle * Math.PI) / 180);
+                        centerX + radius * Math.cos((angle * Math.PI) / 180);
                     const newY =
-                        centerY +
-                        (radius / 2) * Math.sin((angle * Math.PI) / 180);
+                        centerY + radius * Math.sin((angle * Math.PI) / 180);
                     position.update(() => ({ x: newX, y: newY }));
 
-                    if (angle < -360) {
-                        // Changed to negative for counter-clockwise
+                    if (angle <= -90 - 360 * rotations) {
                         phase = 2;
+                        // Ensure exact exit point
+                        position.set({ x: 50, y: 69 });
                     }
                 } else if (phase === 2) {
-                    // Return to starting position
+                    // Return to start (30%, 93%)
                     position.update((pos) => ({
-                        x: pos.x - 2,
-                        y: pos.y + 0.5,
+                        x: pos.x - 0.5,
+                        y: pos.y + 0.6,
                     }));
 
-                    if (get(position).x < -13) {
+                    if (get(position).x <= 30) {
                         isAnimating = false;
-                        angle = 0;
-                        position.set({ x: -13, y: 93 }); // Reset to original position
+                        angle = -90; // Reset angle
+                        position.set({ x: 30, y: 93 });
                         return;
                     }
                 }
@@ -138,31 +141,26 @@
     }
 
     .login-container {
-        background: rgba(
-            255,
-            255,
-            255,
-            0.2
-        ); /* Semi-transparent to match parent */
+        background: rgba(255, 255, 255, 0.2);
         padding: 20px;
         border-radius: 8px;
         width: 300px;
         text-align: center;
     }
     h2 {
-        color: white; /* Solid color for readability */
+        color: white;
     }
     input {
         padding: 10px;
         margin-bottom: 10px;
         border: 1px solid #ccc;
         border-radius: 4px;
-        width: calc(100% - 22px); /* Adjust for padding and border */
+        width: calc(100% - 22px);
     }
     button {
         width: 100%;
         padding: 10px;
-        background-color: #4caf50; /* Opaque background */
+        background-color: #4caf50;
         color: white;
         border: none;
         border-radius: 4px;
@@ -175,7 +173,7 @@
     }
     #signupRe {
         display: block;
-        color: black; /* Solid color for readability */
+        color: black;
         cursor: pointer;
         font-size: 13px;
         margin-bottom: 10px;
@@ -189,8 +187,8 @@
     .spaceship {
         position: absolute;
         width: 150px;
-        transition: all 1s ease;
+        transition: all 0.016s ease; /* Adjusted for ~60 FPS (1/60s) */
         z-index: 0;
-        pointer-events: none; /* Add this to prevent the spaceship from interfering with clicks */
+        pointer-events: none;
     }
 </style>
