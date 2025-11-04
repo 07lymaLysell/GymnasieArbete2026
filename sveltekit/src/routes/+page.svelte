@@ -9,58 +9,68 @@
     }
     import "../routes/global.css";
 
-    let position = writable({ x: 30, y: 93 }); // Adjusted start: (30%, 93%)
+    let position = writable({ x: 30, y: 93 });
     let isAnimating = false;
-    let angle = -90; // Start at bottom of circle
+    let angle = 0; // Changed initial angle
 
     function moveShipCircular() {
         if (!isAnimating) {
             isAnimating = true;
-            const radius = 20; // 20% of screen width
-            const centerX = 50; // Screen center (50%)
-            const centerY = 50; // Screen center (50%)
-            const rotations = 3; // 3 rotations
-            let phase = 0; // 0: approach, 1: circle, 2: return
-            let startX = get(position).x; // 30%
-            let startY = get(position).y; // 93%
+            const radius = 20;
+            const centerX = 30;
+            const centerY = 45;
+            let phase = 0;
+
+            // Calculate initial angle based on starting position
+            let currentAngle = Math.atan2(
+                get(position).y - centerY,
+                get(position).x - centerX,
+            );
 
             function animate() {
                 if (phase === 0) {
-                    // Move toward entry point (50%, 69%)
+                    // Move to the entry point of the circle smoothly
+                    const entryX = centerX + radius; // Start from right side of circle
+                    const entryY = centerY;
+
+                    const currentPos = get(position);
+                    const dx = entryX - currentPos.x;
+                    const dy = entryY - currentPos.y;
+
                     position.update((pos) => ({
-                        x: pos.x + 0.5, // Move 20% in ~40 frames
-                        y: pos.y - 0.6, // Move from 93% to 69% (24% in ~40 frames)
+                        x: pos.x + dx * 0.05,
+                        y: pos.y + dy * 0.05,
                     }));
 
-                    if (get(position).x >= 50) {
+                    // When close enough to entry point, start rotation
+                    if (Math.abs(dx) < 0.5 && Math.abs(dy) < 0.5) {
+                        currentAngle = 0; // Start from 0 degrees
                         phase = 1;
-                        // Ensure exact entry point
-                        position.set({ x: 50, y: 69 });
                     }
                 } else if (phase === 1) {
-                    // Circular motion: 3 rotations
-                    angle -= 3;
-                    const newX =
-                        centerX + radius * Math.cos((angle * Math.PI) / 180);
-                    const newY =
-                        centerY + radius * Math.sin((angle * Math.PI) / 180);
-                    position.update(() => ({ x: newX, y: newY }));
+                    // Circular motion
+                    currentAngle -= 0.05; // Slower rotation speed
+                    const newX = centerX + radius * Math.cos(currentAngle);
+                    const newY = centerY + radius * Math.sin(currentAngle);
 
-                    if (angle <= -90 - 360 * rotations) {
+                    position.update(() => ({ x: newX, y: newY }));
+                    //varje 2 är ett fullt varv och 1 är ett halvt varv
+                    if (currentAngle <= -100 * Math.PI) {
                         phase = 2;
-                        // Ensure exact exit point
-                        position.set({ x: 50, y: 69 });
                     }
                 } else if (phase === 2) {
-                    // Return to start (30%, 93%)
+                    // Return to start
+                    const currentPos = get(position);
+                    const dx = 30 - currentPos.x;
+                    const dy = 93 - currentPos.y;
+
                     position.update((pos) => ({
-                        x: pos.x - 0.5,
-                        y: pos.y + 0.6,
+                        x: pos.x + dx * 0.05,
+                        y: pos.y + dy * 0.05,
                     }));
 
-                    if (get(position).x <= 30) {
+                    if (Math.abs(dx) < 0.5 && Math.abs(dy) < 0.5) {
                         isAnimating = false;
-                        angle = -90; // Reset angle
                         position.set({ x: 30, y: 93 });
                         return;
                     }
