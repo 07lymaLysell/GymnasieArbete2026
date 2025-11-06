@@ -1,5 +1,10 @@
 <script>
     import { get, writable } from "svelte/store";
+    import { goto } from "$app/navigation";
+    function goToSignup() {
+        goto("/signup");
+    }
+
     let isHovered = false;
     function handleMouseOver() {
         isHovered = true;
@@ -7,21 +12,19 @@
     function handleMouseOut() {
         isHovered = false;
     }
-    import "../routes/global.css";
 
     let position = writable({ x: 30, y: 93 });
     let isAnimating = false;
-    let angle = 0; // Changed initial angle
+    let angle = 0;
 
     function moveShipCircular() {
         if (!isAnimating) {
             isAnimating = true;
-            const radius = 20;
-            const centerX = 30;
-            const centerY = 45;
+            const radius = 25;
+            const centerX = 33;
+            const centerY = 49;
             let phase = 0;
 
-            // Calculate initial angle based on starting position
             let currentAngle = Math.atan2(
                 get(position).y - centerY,
                 get(position).x - centerX,
@@ -29,10 +32,8 @@
 
             function animate() {
                 if (phase === 0) {
-                    // Move to the entry point of the circle smoothly
-                    const entryX = centerX + radius; // Start from right side of circle
+                    const entryX = centerX + radius;
                     const entryY = centerY;
-
                     const currentPos = get(position);
                     const dx = entryX - currentPos.x;
                     const dy = entryY - currentPos.y;
@@ -42,24 +43,20 @@
                         y: pos.y + dy * 0.05,
                     }));
 
-                    // When close enough to entry point, start rotation
-                    if (Math.abs(dx) < 0.5 && Math.abs(dy) < 0.5) {
-                        currentAngle = 0; // Start from 0 degrees
+                    if (Math.abs(dx) < 0.2 && Math.abs(dy) < 0.2) {
+                        currentAngle = 0;
                         phase = 1;
                     }
                 } else if (phase === 1) {
-                    // Circular motion
-                    currentAngle -= 0.05; // Slower rotation speed
+                    currentAngle -= 0.05;
                     const newX = centerX + radius * Math.cos(currentAngle);
                     const newY = centerY + radius * Math.sin(currentAngle);
 
                     position.update(() => ({ x: newX, y: newY }));
-                    //varje 2 är ett fullt varv och 1 är ett halvt varv
                     if (currentAngle <= -100 * Math.PI) {
                         phase = 2;
                     }
                 } else if (phase === 2) {
-                    // Return to start
                     const currentPos = get(position);
                     const dx = 30 - currentPos.x;
                     const dy = 93 - currentPos.y;
@@ -85,7 +82,7 @@
 
 <main>
     <div class="login-container">
-        <h2>Sign in</h2>
+        <h2>Login</h2>
         <form action="">
             <input
                 type="text"
@@ -100,24 +97,26 @@
                 required
             />
             {#if !isHovered}
-                <!-- svelte-ignore a11y_mouse_events_have_key_events -->
-                <a
-                    href="/signup"
-                    id="signupRe"
+                <button
+                    type="button"
                     on:mouseover={handleMouseOver}
                     on:mouseout={handleMouseOut}
-                    style="cursor:pointer; user-select:none"
-                    >Don't have an account?</a
+                    on:focus={handleMouseOver}
+                    on:blur={handleMouseOut}
+                    on:click={goToSignup}
+                    style="background:none;border:none;padding:0;margin:0;color:inherit;cursor:pointer;user-select:none"
+                    aria-label="Sign up">Don't have an account?</button
                 >
             {:else}
-                <!-- svelte-ignore a11y_mouse_events_have_key_events -->
-                <a
-                    href="/signup"
-                    id="signupRe"
+                <button
+                    type="button"
                     on:mouseover={handleMouseOver}
                     on:mouseout={handleMouseOut}
-                    style="cursor:pointer; user-select:none; color:blue; text-decoration:underline"
-                    >Click here!</a
+                    on:focus={handleMouseOver}
+                    on:blur={handleMouseOut}
+                    on:click={goToSignup}
+                    style="background:none;border:none;padding:0;margin:0;cursor:pointer;user-select:none;color:blue;text-decoration:underline"
+                    aria-label="Sign up">Click here!</button
                 >
             {/if}
             <button type="submit" on:click|preventDefault={moveShipCircular}
@@ -197,7 +196,7 @@
     .spaceship {
         position: absolute;
         width: 150px;
-        transition: all 0.016s ease; /* Adjusted for ~60 FPS (1/60s) */
+        transition: all 0.016s ease;
         z-index: 0;
         pointer-events: none;
     }
