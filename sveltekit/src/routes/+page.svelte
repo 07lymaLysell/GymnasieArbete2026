@@ -55,8 +55,8 @@
 
                     // Easing-rörelse (använd procentuell interpolation för mjukhet)
                     position.update((pos) => ({
-                        x: pos.x + dx * 1.95,
-                        y: pos.y + dy * 1.95,
+                        x: pos.x + dx * 2.0,
+                        y: pos.y + dy * 2.0,
                     }));
 
                     // När vi är nära entry-punkten, byt fas till rotation
