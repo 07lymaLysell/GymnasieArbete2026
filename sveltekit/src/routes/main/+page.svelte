@@ -1,25 +1,25 @@
 <script>
     // Svelte-friendly: bind elements and use reactive state instead of document.querySelector
-    let hamActive = false;
+    let hamActive = $state(false);
     function toggleMenu() {
         hamActive = !hamActive;
     }
-</script>
 
-<svelte:head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Document</title>
-</svelte:head>
+    let showMenu = $state(false);
+</script>
 
 <main>
     <nav class="main-container">
-        <!-- Combined side menu and hamburger -->
-        <div class="side-meny" class:active={hamActive}>
-            <!-- Hamburger menu moved inside side-meny -->
+        <!-- svelte-ignore a11y_click_events_have_key_events -->
+        <!-- svelte-ignore a11y_no_static_element_interactions -->
+        <div
+            class="side-meny"
+            class:active={hamActive}
+            onclick={() => (showMenu = !showMenu)}
+        >
             <div
                 class="ham-menu"
-                on:click={toggleMenu}
+                onclick={toggleMenu}
                 class:active={hamActive}
                 aria-label="Toggle menu"
                 role="button"
@@ -29,14 +29,15 @@
                 <span></span>
                 <span></span>
             </div>
-
-            <ul>
-                <li><a class="active">Home</a></li>
-                <li><a href="">flow</a></li>
-                <li><a href="">messages</a></li>
-                <li><a href="">friends</a></li>
-                <li><a href="">account</a></li>
-            </ul>
+            {#if showMenu}
+                <ul>
+                    <li><button>Home</button></li>
+                    <li><button>flow</button></li>
+                    <li><button>messages</button></li>
+                    <li><button>friends</button></li>
+                    <li><button>account</button></li>
+                </ul>
+            {/if}
         </div>
     </nav>
 </main>
@@ -50,7 +51,7 @@
         height: 100vh;
         width: 100vw;
         margin: 0;
-        background-image: url("/src/lib/assets/backgrund9.png");
+        background-image: url("/assets/backgrund9.png");
         background-position: center;
         background-size: cover;
         background-repeat: no-repeat;
@@ -64,7 +65,6 @@
         align-items: center;
         height: 95vh;
         width: 90vw;
-        margin: 0;
         background-color: white;
         background-position: center;
         background-size: cover;
@@ -75,7 +75,6 @@
         border-radius: 40px;
     }
 
-    /* Side menu (left) */
     .side-meny {
         position: absolute;
         left: 0;
@@ -87,38 +86,51 @@
         border-right: solid 2px black;
         transition: 0.3s ease;
     }
-
-    /* Optional: when hamburger toggles, the class exists for future animations */
     .side-meny.active {
-        /* no visual change by default to preserve look; place for animations if desired */
-    }
-
-    .side-meny a {
-        text-decoration: none;
+        width: 18vw;
     }
     .side-meny ul {
-        list-style: none;
-        padding: 0;
+        position: absolute;
+        top: 90px; /* place list below the hamburger */
+        left: 0;
+        right: 0;
+        flex-direction: column;
+        gap: 12px; /* space between buttons */
+        align-items: center;
+        padding: 8px 10px;
         margin: 0;
+        list-style: none;
+        box-sizing: border-box;
     }
-    .side-meny a.active {
-        transform: scale(1.2);
+    .side-meny ul button {
+        width: calc(100% - 20px); /* inset from edges */
+        max-width: 200px;
+        padding: 8px 12px;
+        border-radius: 8px;
+        border: none;
+        background: rgba(255, 255, 255, 0.12);
+        color: white;
+        cursor: pointer;
+        text-align: center;
+    }
+    .ham-menu span:nth-child {
+        margin: 0;
     }
 
     .ham-menu {
         display: block; /* Changed from none to always show */
         height: 50px;
         width: 50px;
-        margin: 10px; /* Changed from margin: 10px auto */
-        position: relative;
+        margin-top: 20px; /* Changed from margin: 10px auto */
+        position: fixed;
         cursor: pointer;
-        z-index: 1000; /* Ensure it's always on top */
+        z-index: 1000; /*  alltid on top */
     }
 
     .ham-menu span {
         height: 5px;
-        width: 100%;
-        background-color: white; /* Changed from blue for better visibility */
+        width: 80%;
+        background-color: white;
         border-radius: 25px;
         position: absolute;
         top: 50%;
@@ -134,9 +146,9 @@
         top: 75%;
     }
 
-    /* Animated state for hamburger (keeps current intended behavior) */
+    /* positionering av span högsta upp  */
     .ham-menu.active span:nth-child(1) {
-        top: 50%;
+        top: 60%;
         transform: translate(-50%, -50%) rotate(45deg);
     }
 
@@ -149,36 +161,27 @@
         transform: translate(-50%, 50%) rotate(-45deg);
     }
 
-    /* Responsive design */
-    @media (max-width: 768px) {
+    @media (max-width: 76px) {
         .side-meny {
             width: 60px;
             transform: translateX(-100%);
-            z-index: 999; /* Added to ensure proper layering */
+            z-index: 999;
         }
 
-        /* Remove display: block here since we're showing it by default now */
         .ham-menu {
-            position: fixed; /* Changed to fixed */
-            left: 10px; /* Position from left edge */
-            top: 10px; /* Position from top edge */
+            position: fixed;
+            left: 10px;
+            top: 10px;
         }
 
         .side-meny ul {
             opacity: 0;
             transition: opacity 0.3s ease;
-            padding-top: 60px; /* Space for hamburger */
+            padding-top: 60px;
         }
 
         .side-meny.active ul {
             opacity: 1;
-        }
-
-        .side-meny a {
-            padding: 15px 20px;
-            display: block;
-            color: white;
-            font-size: 1.1em;
         }
     }
 </style>

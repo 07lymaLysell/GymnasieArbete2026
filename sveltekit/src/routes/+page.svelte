@@ -26,7 +26,9 @@
     let angle = 0;
 
     // Huvudfunktionen som styr skeppets rörelse: approach -> cirkel -> return
-    function moveShipCircular() {
+    // @ts-ignore
+    function moveShipCircular(e) {
+        e.preventDefault();
         if (!isAnimating) {
             // om ingen animation pågår, starta en
             isAnimating = true;
@@ -130,31 +132,29 @@
             {#if !isHovered}
                 <button
                     type="button"
-                    on:mouseover={handleMouseOver}
-                    on:mouseout={handleMouseOut}
-                    on:focus={handleMouseOver}
-                    on:blur={handleMouseOut}
-                    on:click={goToSignup}
+                    onmouseover={handleMouseOver}
+                    onmouseout={handleMouseOut}
+                    onfocus={handleMouseOver}
+                    onblur={handleMouseOut}
+                    onclick={goToSignup}
                     style="background:none;border:none;padding:0;margin:0;color:inherit;cursor:pointer;user-select:none"
                     aria-label="Sign up">Don't have an account?</button
                 >
             {:else}
                 <button
                     type="button"
-                    on:mouseover={handleMouseOver}
-                    on:mouseout={handleMouseOut}
-                    on:focus={handleMouseOver}
-                    on:blur={handleMouseOut}
-                    on:click={goToSignup}
+                    onmouseover={handleMouseOver}
+                    onmouseout={handleMouseOut}
+                    onfocus={handleMouseOver}
+                    onblur={handleMouseOut}
+                    onclick={goToSignup}
                     style="background:none;border:none;padding:0;margin:0;cursor:pointer;user-select:none;color:blue;text-decoration:underline"
                     aria-label="Sign up">Click here!</button
                 >
             {/if}
 
             <!-- Login-knapp som triggar skeppets animation; preventDefault så sidan inte skickas -->
-            <button type="submit" on:click|preventDefault={moveShipCircular}
-                >Login</button
-            >
+            <button type="submit" onclick={moveShipCircular}>Login</button>
         </form>
     </div>
 
