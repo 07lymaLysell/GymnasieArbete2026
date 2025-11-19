@@ -41,7 +41,7 @@
         height: 100vh;
         width: 100vw;
         margin: 0;
-        background-image: url("/src/lib/assets/backgrund9.png");
+        background-image: url("/assets/backgrund9.png");
         background-position: center;
         background-size: cover;
         background-repeat: no-repeat;

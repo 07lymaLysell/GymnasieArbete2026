@@ -57,8 +57,8 @@
 
                     // Easing-rörelse (använd procentuell interpolation för mjukhet)
                     position.update((pos) => ({
-                        x: pos.x + dx * 2.0,
-                        y: pos.y + dy * 2.0,
+                        x: pos.x + dx * 1.8,
+                        y: pos.y + dy * 1.8,
                     }));
 
                     // När vi är nära entry-punkten, byt fas till rotation
@@ -160,7 +160,7 @@
 
     <!-- Rymdskeppsbild: positioneras via % left/top från position-store -->
     <img
-        src="/src/lib/assets/rymdfartyg.png"
+        src="/assets/rymdfartyg.png"
         alt=""
         class="spaceship"
         style="left: {$position.x}%;top:{$position.y}%;"
@@ -177,7 +177,7 @@
         height: 100vh;
         width: 100vw;
         margin: 0;
-        background-image: url("/src/lib/assets/backgrund9.png");
+        background-image: url("/assets/backgrund9.png");
         background-position: center;
         background-size: cover;
         background-repeat: no-repeat;
