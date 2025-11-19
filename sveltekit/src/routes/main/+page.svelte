@@ -55,7 +55,7 @@
                     >
                 </li>
                 <li>
-                    <button
+                    <button onclick={gotoFlow}
                         ><img
                             src="/assets/exploore.jpg"
                             alt="Explore"
@@ -63,7 +63,7 @@
                     >
                 </li>
                 <li>
-                    <button
+                    <button onclick={gotoMessages}
                         ><img
                             src="/assets/message.svg"
                             alt="Messages"
@@ -71,7 +71,7 @@
                     >
                 </li>
                 <li>
-                    <button
+                    <button onclick={gotoFriends}
                         ><img src="/assets/friends.png" alt="Friends" /></button
                     >
                 </li>
@@ -139,7 +139,7 @@
     /* Grey sidebar */
     .sidebar {
         width: 90px;
-        background: #2d2d2d;
+        background: gray;
         border-right: 2px solid black;
         display: flex;
         flex-direction: column;
