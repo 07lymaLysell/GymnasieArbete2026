@@ -27,7 +27,7 @@
                 required
             />
 
-            <button type="submit" on:click={goToMain}>Login </button>
+            <button type="submit" onclick={goToMain}>Login </button>
         </form>
     </div>
 </main>
