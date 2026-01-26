@@ -50,6 +50,8 @@ services:
     image: node:latest
     container_name: node
     restart: always
+    ports:
+      - "5173:5173"
     working_dir: /sveltekit
     command: "npm run dev -- --host 0.0.0.0"
     volumes:
