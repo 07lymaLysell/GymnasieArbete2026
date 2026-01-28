@@ -228,19 +228,21 @@ class DbEgyTalk
      * @param  $pwd     Lösenord
      * @return true om det lyckades, annars false
      */
-    function addUser($fname, $sname, $user, $pwd)
+    function addUser($fname, $sname, $user, $email, $pwd)
     {
         $fname = filter_var($fname, FILTER_SANITIZE_SPECIAL_CHARS);
         $sname = filter_var($sname, FILTER_SANITIZE_SPECIAL_CHARS);
         $user = filter_var($user, FILTER_SANITIZE_SPECIAL_CHARS);
+        $email = filter_var($email, FILTER_SANITIZE_SPECIAL_CHARS);
         $pwd = password_hash($pwd, PASSWORD_DEFAULT);
 
         // Kombinera förnamn och efternamn till display_name
         $displayName = trim($fname . ' ' . $sname);
 
         try {
-            $stmt = $this->db->prepare("INSERT INTO users(username, password, display_name) VALUES(:user, :pwd, :display)");
+            $stmt = $this->db->prepare("INSERT INTO users(username, password, display_name, email) VALUES(:user, :pwd, :display, :email)");
             $stmt->bindValue(":user", $user);
+            $stmt->bindValue(":email", $email);
             $stmt->bindValue(":pwd", $pwd);
             $stmt->bindValue(":display", $displayName);
 

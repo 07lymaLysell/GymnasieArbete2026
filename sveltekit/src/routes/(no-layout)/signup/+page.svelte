@@ -5,6 +5,7 @@
     let firstname = "";
     let surname = "";
     let username = "";
+    let email = "";
     let password = "";
     let loading = false;
     let message = "";
@@ -23,6 +24,7 @@
             formData.append("surname", surname);
             formData.append("username", username);
             formData.append("password", password);
+            formData.append("email", email);
 
             // Skicka POST-request till PHP API:et
             const response = await fetch("http://localhost/api/adduser.php", {
@@ -39,6 +41,7 @@
                 firstname = "";
                 surname = "";
                 username = "";
+                email = "";
                 password = "";
                 // Gå till login eller main efter 2 sekunder
                 setTimeout(() => {
@@ -69,7 +72,7 @@
             </div>
         {/if}
 
-        <form on:submit={handleSignup}>
+        <form onsubmit={handleSignup}>
             <input
                 type="text"
                 placeholder="Förnamn"
@@ -86,6 +89,12 @@
                 type="text"
                 placeholder="Användarnamn"
                 bind:value={username}
+                required
+            />
+            <input
+                type="text"
+                placeholder="Email"
+                bind:value={email}
                 required
             />
             <input

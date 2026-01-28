@@ -22,11 +22,12 @@ $result = [
 
 // 1. Kontrollera att alla obligatoriska fält finns med
 if (
-    !isset($_POST['firstname'], $_POST['surname'], $_POST['username'], $_POST['password']) ||
+    !isset($_POST['firstname'], $_POST['surname'], $_POST['username'], $_POST['password'], $_POST['email']) ||
     empty(trim($_POST['firstname'])) ||
     empty(trim($_POST['surname'])) ||
     empty(trim($_POST['username'])) ||
-    empty(trim($_POST['password']))
+    empty(trim($_POST['password'])) ||
+    empty(trim($_POST['email']))
 ) {
     $result['message'] = 'Vänligen fyll i alla fält';
     echo json_encode($result, JSON_UNESCAPED_UNICODE);
@@ -37,6 +38,7 @@ if (
 $firstname = trim($_POST['firstname']);
 $surname = trim($_POST['surname']);
 $username = trim($_POST['username']);
+$email = trim($_POST['email']);
 $password = $_POST['password'];
 
 // 3. Kontrollera om användarnamnet redan finns
@@ -54,14 +56,14 @@ if (strlen($password) < 6) {
 }
 
 // 5. Försök skapa användaren
-$inserted = $db->addUser($firstname, $surname, $username, $password);
+$inserted = $db->addUser($firstname, $surname, $username, $email, $password);
 
 // 6. Sätt resultatet beroende på om det lyckades
 if ($inserted) {
     $result['success'] = true;
     $result['message'] = 'Användare skapad framgångsrikt!';
 } else {
-    $result['message'] = 'Kunde inte skapa användare (databasfel)';
+    $result['message'] = 'Kunde inte skapa användare (databasfel ???)';
 }
 
 echo json_encode($result, JSON_UNESCAPED_UNICODE);
