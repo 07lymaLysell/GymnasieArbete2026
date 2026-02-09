@@ -61,9 +61,9 @@ $inserted = $db->addUser($firstname, $surname, $username, $email, $password);
 // 6. Sätt resultatet beroende på om det lyckades
 if ($inserted) {
     $result['success'] = true;
-    $result['message'] = 'Användare skapad framgångsrikt!';
+    $result['message'] = 'Användare skapad korrekt!';
 } else {
-    $result['message'] = 'Kunde inte skapa användare (databasfel ???)';
+    $result['message'] = 'Kunde inte skapa användare (databasfel ?!?)';
 }
 
 echo json_encode($result, JSON_UNESCAPED_UNICODE);

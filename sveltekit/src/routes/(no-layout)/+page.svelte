@@ -1,6 +1,11 @@
-<script>
-    import { get, writable } from "svelte/store";
+<script lang="ts">
     import { goto } from "$app/navigation";
+    import { loginUser } from "$lib/stores/auth";
+
+    let username = $state("");
+    let password = $state("");
+    let errorMessage = $state("");
+    let isLoading = $state(false);
 
     // Funktion som navigerar till signup-sidan när knappen trycks
     function goToSignup() {
@@ -8,14 +13,60 @@
     }
 
     // Hover-flagga för att byta knapptext ("Don't have an account?" -> "Click here!")
-    let isHovered = false;
+    let isHovered = $state(false);
     function handleMouseOver() {
         isHovered = true;
     }
     function handleMouseOut() {
         isHovered = false;
     }
+
+    async function handleLogin(e: any) {
+        e.preventDefault();
+        errorMessage = "";
+        isLoading = true;
+
+        try {
+            const response = await fetch("http://localhost/api/auth.php", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/x-www-form-urlencoded",
+                },
+                body: new URLSearchParams({
+                    username: username,
+                    password: password,
+                }),
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                loginUser(data.user);
+                await goto("/account");
+            } else {
+                errorMessage = data.message || "Login failed";
+            }
+        } catch (error) {
+            errorMessage = "Network error. Please try again.";
+            console.error("Login error:", error);
+        } finally {
+            isLoading = false;
+        }
+    }
 </script>
+
+<svelte:head>
+    <style>
+        html,
+        body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            overflow: hidden;
+            background: #000; /* fallback – prevents white flash */
+        }
+    </style>
+</svelte:head>
 
 <main>
     <!-- login-container: elementet runt formuläret som skeppet ska cirkulera kring -->
@@ -24,13 +75,13 @@
         <form action="">
             <input
                 type="text"
-                name="username"
+                bind:value={username}
                 placeholder="Username"
                 required
             />
             <input
                 type="password"
-                name="password"
+                bind:value={password}
                 placeholder="Password"
                 required
             />
@@ -61,7 +112,13 @@
             {/if}
 
             <!-- Login-knapp som triggar skeppets animation; preventDefault så sidan inte skickas -->
-            <button type="submit">Login</button>
+            <button type="submit" onclick={handleLogin} disabled={isLoading}>
+                {isLoading ? "Logging in..." : "Login"}
+            </button>
+
+            {#if errorMessage}
+                <p style="color: red; margin-top: 10px;">{errorMessage}</p>
+            {/if}
         </form>
     </div>
 
@@ -117,30 +174,5 @@
         background-color: red;
         scale: 1.03;
         transition: ease-in-out 0.2s;
-    }
-    #signupRe {
-        display: block;
-        color: black;
-        cursor: pointer;
-        font-size: 13px;
-        margin-bottom: 10px;
-        text-decoration: none;
-        border-radius: 3px;
-    }
-    #signupRe:hover {
-        color: blue;
-        text-decoration: underline;
-    }
-
-    /* Spaceship: absolut position, uppdateras varje frame via JS.
-       OBS: CSS-transition kan orsaka "buffring" när JS också flyttar left/top.
-       För maximal mjukhet rekommenderas `transition: none;` och transform: translate(-50%,-50%)
-       men jag ändrar inte din logik här — detta är bara en notering. */
-    .spaceship {
-        position: absolute;
-        width: 150px;
-        transition: all 0.016s ease;
-        z-index: 0;
-        pointer-events: none;
     }
 </style>

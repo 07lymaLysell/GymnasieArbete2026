@@ -61,9 +61,11 @@ class DbEgyTalk
                 $response['uid'] = $user['uid'];
                 $response['firstname'] = $user['firstname'];
                 $response['surname'] = $user['surname'];
-                // Om tabeller user utökats med mail och phone
-                //$response['mail'] = $user['mail'];
-                //$response['phone'] = $user['phone'];
+                $response['display_name'] = $user['display_name'];
+                $response['email'] = $user['email'];
+
+
+
             }
         }
 
