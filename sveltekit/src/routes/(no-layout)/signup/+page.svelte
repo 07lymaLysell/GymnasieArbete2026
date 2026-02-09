@@ -62,6 +62,19 @@
     }
 </script>
 
+<svelte:head>
+    <style>
+        html,
+        body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            overflow: hidden; /* ← removes page-level scrollbar */
+            background: #000; /* fallback – prevents white flash */
+        }
+    </style>
+</svelte:head>
+
 <main>
     <div class="login-container">
         <h2>Registrering</h2>
@@ -121,7 +134,7 @@
         display: flex;
         justify-content: center;
         align-items: center;
-        height: 100vh;
+        min-height: 100dvh; /* ← key fix: use dvh instead of vh */
         width: 100vw;
         margin: 0;
         background-image: url("/assets/backgrund9.png");
@@ -129,7 +142,7 @@
         background-size: cover;
         background-repeat: no-repeat;
         position: relative;
-        overflow: hidden;
+        overflow: hidden; /* ← prevents inner scroll overflow */
     }
 
     .login-container {

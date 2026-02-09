@@ -15,99 +15,6 @@
     function handleMouseOut() {
         isHovered = false;
     }
-
-    // position: skrivbar store med x/y i procent (används i inline style left/top)
-    let position = writable({ x: 30, y: 93 });
-
-    // isAnimating: hindrar att animationen startas flera gånger samtidigt
-    let isAnimating = false;
-
-    // angle används för cirkelrotation (i din kod uppdateras currentAngle lokalt)
-    let angle = 0;
-
-    // Huvudfunktionen som styr skeppets rörelse: approach -> cirkel -> return
-    // @ts-ignore
-    function moveShipCircular(e) {
-        e.preventDefault();
-        if (!isAnimating) {
-            // om ingen animation pågår, starta en
-            isAnimating = true;
-
-            // radius och centerX/centerY är just nu hårdkodade procentvärden
-            // Dessa bestämmer var cirkeln kommer att vara (ändra för att använda login-container DOM)
-            const radius = 25;
-            const centerX = 33;
-            const centerY = 49;
-            let phase = 0; // 0 = närma, 1 = cirkulera, 2 = återvänd
-
-            // beräkna startvinkel utifrån nuvarande position relativt center
-            let currentAngle = Math.atan2(
-                get(position).y - centerY,
-                get(position).x - centerX,
-            );
-
-            function animate() {
-                if (phase === 0) {
-                    // Approach: interpolera position mot en entry-punkt på cirkeln (ingen teleport)
-                    const entryX = centerX + radius;
-                    const entryY = centerY;
-                    const currentPos = get(position);
-                    const dx = entryX - currentPos.x;
-                    const dy = entryY - currentPos.y;
-
-                    // Easing-rörelse (använd procentuell interpolation för mjukhet)
-                    position.update((pos) => ({
-                        x: pos.x + dx * 1.95,
-                        y: pos.y + dy * 1.95,
-                    }));
-
-                    // När vi är nära entry-punkten, byt fas till rotation
-                    if (Math.abs(dx) < 0.2 && Math.abs(dy) < 0.2) {
-                        // OBS: att sätta currentAngle = 0 kan orsaka hopp om skeppet inte ligger på cirkeln.
-                        // Här återställs angle till 0 i din befintliga kod — rekommenderas att
-                        // räkna ut angle från den faktiska positionen istället för att nollställa.
-                        currentAngle = 0;
-                        phase = 1;
-                    }
-                } else if (phase === 1) {
-                    // Rotation: uppdatera vinkel och beräkna ny punkt på cirkeln
-                    // currentAngle minskas för counter-clockwise rotation (steg i grader/radianer beroende på användning)
-                    currentAngle -= 0.5;
-                    const newX = centerX + radius * Math.cos(currentAngle);
-                    const newY = centerY + radius * Math.sin(currentAngle);
-
-                    // Sätt position direkt till punkt på cirkeln
-                    position.update(() => ({ x: newX, y: newY }));
-
-                    // Avsluta rotation efter viss vinkel (här ett stort värde; bättre att ackumulera rot.antal)
-                    if (currentAngle <= -10 * Math.PI) {
-                        phase = 2;
-                    }
-                } else if (phase === 2) {
-                    // Return: interpolera tillbaka till startposition med easing
-                    const currentPos = get(position);
-                    const dx = 30 - currentPos.x;
-                    const dy = 93 - currentPos.y;
-
-                    position.update((pos) => ({
-                        x: pos.x + dx * 0.05,
-                        y: pos.y + dy * 0.05,
-                    }));
-
-                    // När vi är nära startposition, avsluta animation och återställ exakt
-                    if (Math.abs(dx) < 0.5 && Math.abs(dy) < 0.5) {
-                        isAnimating = false;
-                        position.set({ x: 30, y: 93 });
-                        return;
-                    }
-                }
-
-                // Kör nästa frame
-                requestAnimationFrame(animate);
-            }
-            animate();
-        }
-    }
 </script>
 
 <main>
@@ -154,17 +61,11 @@
             {/if}
 
             <!-- Login-knapp som triggar skeppets animation; preventDefault så sidan inte skickas -->
-            <button type="submit" onclick={moveShipCircular}>Login</button>
+            <button type="submit">Login</button>
         </form>
     </div>
 
     <!-- Rymdskeppsbild: positioneras via % left/top från position-store -->
-    <img
-        src="/assets/rymdfartyg.png"
-        alt=""
-        class="spaceship"
-        style="left: {$position.x}%;top:{$position.y}%;"
-    />
 </main>
 
 <style>
