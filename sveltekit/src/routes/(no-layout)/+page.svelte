@@ -38,8 +38,16 @@
                 }),
             });
 
-            const data = await response.json();
-
+            const text = await response.text();
+            console.log("Raw server response:", text);
+            let data;
+            try {
+                data = JSON.parse(text);
+            } catch (e) {
+                console.error("JSON parse failed. Raw response was:", text);
+                errorMessage = "Server returned invalid response (not JSON)";
+                return;
+            }
             if (data.success) {
                 loginUser(data.user);
                 await goto("/account");

@@ -47,10 +47,8 @@ class DbEgyTalk
         $response = [];
 
         /* Bygger upp sql frågan */
-        $stmt = $this->db->prepare("SELECT * FROM user WHERE username = :user");
-        $stmt->bindValue(":user", $userName);
-        $stmt->execute();
-
+        $stmt = $this->db->prepare("SELECT * FROM users WHERE username = :username");
+        $stmt->execute([":username" => $userName]);
 
         /** Kontroll att resultat finns */
         if ($stmt->rowCount() == 1) {
@@ -63,9 +61,6 @@ class DbEgyTalk
                 $response['surname'] = $user['surname'];
                 $response['display_name'] = $user['display_name'];
                 $response['email'] = $user['email'];
-
-
-
             }
         }
 
@@ -97,8 +92,8 @@ class DbEgyTalk
         $posts = [];
 
         try {
-            $sqlkod = "SELECT post.*, user.firstname, user.surname FROM post 
-                NATURAL JOIN user ORDER BY post.date DESC";
+            $sqlkod = "SELECT post.*, users.firstname, users.surname FROM post 
+                NATURAL JOIN users ORDER BY post.date DESC";
             $stmt = $this->db->prepare($sqlkod);
             $stmt->execute();
 
@@ -215,18 +210,10 @@ class DbEgyTalk
     /**
      * Lägger till en ny användare
      *
-     * @param  $fname   Förnamn
-     * @param  $sname   Efternamn
-     * @param  $user    Användarnamn
-     * @param  $pwd     Lösenord
-     * @return true om det lyckades, annars false
-     */
-    /**
-     * Lägger till en ny användare
-     *
      * @param  $fname   Förnamn (används inte, sparas som display_name)
      * @param  $sname   Efternamn (används inte)
      * @param  $user    Användarnamn
+     * @param  $email   Email
      * @param  $pwd     Lösenord
      * @return true om det lyckades, annars false
      */
@@ -282,8 +269,8 @@ class DbEgyTalk
     function findUsers($searchWord)
     {
         $searchWord = filter_var($searchWord, FILTER_UNSAFE_RAW);
-        // Ev mer om phone och mail är med i tabellen user
-        $sql = "SELECT uid, firstname, surname FROM user WHERE firstname LIKE :search OR surname LIKE :search  ORDER BY surname, firstname";
+        // Ev mer om phone och mail är med i tabellen users
+        $sql = "SELECT uid, firstname, surname FROM users WHERE firstname LIKE :search OR surname LIKE :search  ORDER BY surname, firstname";
         $stmt = $this->db->prepare($sql);
         $stmt->bindValue(":search", "%$searchWord%");
 
@@ -304,7 +291,7 @@ class DbEgyTalk
         $settings = [];
 
         try {
-            $stmt = $this->db->prepare("SELECT mail, phone FROM user WHERE uid = :uid");
+            $stmt = $this->db->prepare("SELECT mail, phone FROM users WHERE uid = :uid");
             $stmt->bindValue(":uid", $uid);
 
             if ($stmt->execute())
@@ -314,7 +301,6 @@ class DbEgyTalk
 
         return $settings;
     }
-
 
     /**
      * Uppdaterar användarinstälningar
@@ -344,7 +330,7 @@ class DbEgyTalk
         $verified = false;
 
         try {
-            $stmt = $this->db->prepare("SELECT password FROM user WHERE uid = :uid ");
+            $stmt = $this->db->prepare("SELECT password FROM users WHERE uid = :uid ");
             $stmt->bindValue(":uid", $uid);
 
             if ($stmt->execute()) {

@@ -1,5 +1,33 @@
-<script>
-    import { base } from "$app/paths";
+<script lang="ts">
+    import { goto } from "$app/navigation";
+    import { authStore } from "$lib/stores/auth"; // assuming path is correct
+    import { onMount } from "svelte";
+
+    // Reactive user – we derive it safely from the store
+    let user = $state<any>(null);
+
+    // Optional: derived full name (cleaner than concatenating in markup)
+    let fullName = $derived.by(() => {
+        if (!user) return "Inloggad användare";
+        return (
+            `${user.firstname || ""} ${user.surname || ""}`.trim() ||
+            user.username ||
+            "Användare"
+        );
+    });
+
+    onMount(() => {
+        const unsubscribe = authStore.subscribe((auth) => {
+            if (auth.isLoggedIn && auth.user) {
+                user = auth.user;
+            } else {
+                // Redirect if not logged in
+                goto("/");
+            }
+        });
+
+        return unsubscribe;
+    });
 </script>
 
 <main class="main-content">
@@ -8,51 +36,66 @@
         <p class="lead">Kontoinställningar och personlig information</p>
     </header>
 
-    <section class="profile-card">
-        <div class="profile-left">
-            <figure class="pfp">
-                <img src="/assets/pfp.png" alt="Profilbild för Max Lysell" />
-            </figure>
+    {#if user}
+        <section class="profile-card">
+            <div class="profile-left">
+                <figure class="pfp">
+                    <img
+                        src="/assets/pfp.png"
+                        alt="Profilbild för {fullName}"
+                    />
+                </figure>
 
-            <div class="basic-info">
-                <h2 class="name">Namn Efternamn</h2>
-                <p class="role">Roll / Titel</p>
+                <div class="basic-info">
+                    <h2 class="name">{fullName}</h2>
+                    <p class="role">{user.role || "Medlem"}</p>
+                    <!-- fallback if no role exists -->
 
-                <nav class="profile-actions" aria-label="Profile actions">
-                    <button type="button">Redigera profil</button>
-                    <button type="button">Byt lösenord</button>
-                </nav>
+                    <nav class="profile-actions" aria-label="Profile actions">
+                        <button type="button">Redigera profil</button>
+                        <button type="button">Byt lösenord</button>
+                    </nav>
+                </div>
             </div>
-        </div>
 
-        <div class="profile-right">
-            <section class="info-panel" aria-labelledby="personal-info">
-                <h3 id="personal-info">Personlig information</h3>
-                <dl class="info-list">
-                    <div>
-                        <dt>Name</dt>
-                        <dd>Max</dd>
-                    </div>
-                    <div>
-                        <dt>Age</dt>
-                        <dd>18</dd>
-                    </div>
-                    <div>
-                        <dt>Location</dt>
-                        <dd>Sweden</dd>
-                    </div>
-                </dl>
-            </section>
+            <div class="profile-right">
+                <section class="info-panel" aria-labelledby="personal-info">
+                    <h3 id="personal-info">Personlig information</h3>
+                    <dl class="info-list">
+                        <div>
+                            <dt>Användarnamn</dt>
+                            <dd>{user.username || "—"}</dd>
+                        </div>
+                        <div>
+                            <dt>Email</dt>
+                            <dd>{user.email || "—"}</dd>
+                        </div>
+                        <div>
+                            <dt>Förnamn</dt>
+                            <dd>{user.firstname || "—"}</dd>
+                        </div>
+                        <div>
+                            <dt>Efternamn</dt>
+                            <dd>{user.surname || "—"}</dd>
+                        </div>
+                        <!-- Add more fields if they exist in user object, e.g. -->
+                        <!-- <div><dt>Ålder</dt><dd>{user.age || "—"}</dd></div> -->
+                        <!-- <div><dt>Land</dt><dd>{user.location || "Sverige"}</dd></div> -->
+                    </dl>
+                </section>
 
-            <section class="other-panel">
-                <h3>Övrigt</h3>
-                <p>
-                    Här kan du visa statistik, inställningar eller annan
-                    relevant information.
-                </p>
-            </section>
-        </div>
-    </section>
+                <section class="other-panel">
+                    <h3>Övrigt</h3>
+                    <p>
+                        Här kan du visa statistik, inställningar eller annan
+                        relevant information.
+                    </p>
+                </section>
+            </div>
+        </section>
+    {:else}
+        <p style="text-align: center; color: #666;">Laddar profil...</p>
+    {/if}
 </main>
 
 <style>
