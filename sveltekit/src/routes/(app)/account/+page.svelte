@@ -1,33 +1,72 @@
 <script lang="ts">
     import { goto } from "$app/navigation";
-    import { authStore } from "$lib/stores/auth"; // assuming path is correct
+    import { authStore, loginUser } from "$lib/stores/auth";
     import { onMount } from "svelte";
 
-    // Reactive user – we derive it safely from the store
-    let user = $state<any>(null);
+    // Local user object populated from authStore
+    let user: any = null;
 
-    // Optional: derived full name (cleaner than concatenating in markup)
-    let fullName = $derived.by(() => {
-        if (!user) return "Inloggad användare";
-        return (
-            `${user.firstname || ""} ${user.surname || ""}`.trim() ||
-            user.username ||
-            "Användare"
-        );
-    });
+    // biography and saving state for "Om mig" panel
+    let biography = "";
+    let saving = false;
+    let saveMessage = "";
 
+    // Reactive full name derived from user
+    let fullName = "Inloggad användare";
+
+    // Subscribe to authStore on mount and keep local user in sync
     onMount(() => {
         const unsubscribe = authStore.subscribe((auth) => {
-            if (auth.isLoggedIn && auth.user) {
+            if (auth && auth.isLoggedIn && auth.user) {
                 user = auth.user;
+                biography = user.biography || "";
+                // Compute fullName
+                fullName =
+                    (
+                        (user.firstname || "") +
+                        " " +
+                        (user.surname || "")
+                    ).trim() ||
+                    user.username ||
+                    "Användare";
             } else {
-                // Redirect if not logged in
                 goto("/");
             }
         });
 
         return unsubscribe;
     });
+
+    // Save biography to backend and update store + localStorage
+    async function saveBio() {
+        if (!user || typeof user.uid === "undefined") return;
+        saving = true;
+        saveMessage = "";
+
+        try {
+            const res = await fetch("http://localhost/api/upd-bio.php", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ uid: user.uid, biography }),
+            });
+
+            const data = await res.json();
+            if (data.success) {
+                // Update local auth store and localStorage
+                const updatedUser = { ...user, biography };
+                loginUser(updatedUser);
+                saveMessage = "Sparat";
+            } else {
+                saveMessage = data.message || "Ett fel uppstod";
+            }
+        } catch (e) {
+            saveMessage = "Nätverksfel";
+            console.error(e);
+        } finally {
+            saving = false;
+            setTimeout(() => (saveMessage = ""), 3000);
+        }
+    }
 </script>
 
 <main class="main-content">
@@ -84,12 +123,40 @@
                     </dl>
                 </section>
 
+                <!-- Inside .profile-right -->
+
                 <section class="other-panel">
-                    <h3>Övrigt</h3>
-                    <p>
-                        Här kan du visa statistik, inställningar eller annan
-                        relevant information.
-                    </p>
+                    <h3>Om mig</h3>
+
+                    <!-- svelte-ignore element_invalid_self_closing_tag -->
+                    <textarea
+                        bind:value={biography}
+                        placeholder="Berätta lite om dig själv..."
+                        rows="5"
+                        style="width:100%; padding:12px; border-radius:8px; border:1px solid #ddd;"
+                    />
+
+                    <div style="margin-top:12px;">
+                        <button
+                            on:click={saveBio}
+                            disabled={saving ||
+                                biography === (user.biography || "")}
+                        >
+                            {saving ? "Sparar..." : "Spara"}
+                        </button>
+
+                        {#if saveMessage}
+                            <span
+                                style="margin-left:12px; color: {saveMessage.includes(
+                                    'fel',
+                                )
+                                    ? 'red'
+                                    : 'green'};"
+                            >
+                                {saveMessage}
+                            </span>
+                        {/if}
+                    </div>
                 </section>
             </div>
         </section>

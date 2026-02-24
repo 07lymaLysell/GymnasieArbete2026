@@ -57,8 +57,15 @@ class DbEgyTalk
             // Kontrollerar lösenordet, och allt ok.
             if (password_verify($passWord, $user['password'])) {
                 $response['uid'] = $user['id'];
+                $response['username'] = $user['username'];
                 $response['display_name'] = $user['display_name'];
                 $response['email'] = $user['email'];
+                $response['biography'] = $user['biography'] ?? '';
+
+                // Parse display_name to extract firstname and surname
+                $nameParts = explode(' ', trim($user['display_name']), 2);
+                $response['firstname'] = $nameParts[0] ?? '';
+                $response['surname'] = $nameParts[1] ?? '';
             }
         }
 
@@ -208,8 +215,8 @@ class DbEgyTalk
     /**
      * Lägger till en ny användare
      *
-     * @param  $fname   Förnamn (används inte, sparas som display_name)
-     * @param  $sname   Efternamn (används inte)
+     * @param  $fname   Förnamn
+     * @param  $sname   Efternamn
      * @param  $user    Användarnamn
      * @param  $email   Email
      * @param  $pwd     Lösenord
@@ -314,6 +321,26 @@ class DbEgyTalk
         // Egen kod!
 
         return $success;
+    }
+
+    /**
+     * Uppdaterar användarens biography-fält
+     *
+     * @param int $uid
+     * @param string $bio
+     * @return bool true om någon rad uppdaterades
+     */
+    function updateBiography($uid, $bio)
+    {
+        try {
+            $stmt = $this->db->prepare("UPDATE users SET biography = :bio WHERE id = :uid");
+            $stmt->bindValue(":bio", $bio);
+            $stmt->bindValue(":uid", $uid, PDO::PARAM_INT);
+            $stmt->execute();
+            return $stmt->rowCount() > 0;
+        } catch (Exception $e) {
+            return false;
+        }
     }
 
     /**
