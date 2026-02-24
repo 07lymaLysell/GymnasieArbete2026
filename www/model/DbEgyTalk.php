@@ -41,9 +41,9 @@ class DbEgyTalk
      * @param  $passWord  Lösenord
      * @return $response  användardata eller tom [] om inloggning misslyckas
      */
-    function auth($userName, $passWord)
+    function auth($userName, $passWord): array
     {
-        $userName = trim(filter_var($userName, FILTER_UNSAFE_RAW));
+        $userName = trim($userName);
         $response = [];
 
         /* Bygger upp sql frågan */
@@ -56,9 +56,7 @@ class DbEgyTalk
             $user = $stmt->fetch(PDO::FETCH_ASSOC);
             // Kontrollerar lösenordet, och allt ok.
             if (password_verify($passWord, $user['password'])) {
-                $response['uid'] = $user['uid'];
-                $response['firstname'] = $user['firstname'];
-                $response['surname'] = $user['surname'];
+                $response['uid'] = $user['id'];
                 $response['display_name'] = $user['display_name'];
                 $response['email'] = $user['email'];
             }

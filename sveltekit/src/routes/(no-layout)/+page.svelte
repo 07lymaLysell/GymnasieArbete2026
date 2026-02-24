@@ -26,16 +26,15 @@
         errorMessage = "";
         isLoading = true;
 
+        const formData = new FormData();
+        formData.append("username", username);
+        formData.append("password", password);
+
         try {
             const response = await fetch("http://localhost/api/auth.php", {
                 method: "POST",
-                headers: {
-                    "Content-Type": "application/x-www-form-urlencoded",
-                },
-                body: new URLSearchParams({
-                    username: username,
-                    password: password,
-                }),
+
+                body: formData,
             });
 
             const text = await response.text();
