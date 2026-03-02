@@ -355,8 +355,8 @@ class DbEgyTalk
         $verified = false;
 
         try {
-            $stmt = $this->db->prepare("SELECT password FROM users WHERE uid = :uid ");
-            $stmt->bindValue(":uid", $uid);
+            $stmt = $this->db->prepare("SELECT password FROM users WHERE id = :uid ");
+            $stmt->bindValue(":uid", $uid, PDO::PARAM_INT);
 
             if ($stmt->execute()) {
                 $user = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -384,9 +384,12 @@ class DbEgyTalk
 
             try {
 
-                // Egen kod!
-
-                //$success = $stmt->execute();
+                $newHash = password_hash($pwd, PASSWORD_DEFAULT);
+                $stmt = $this->db->prepare("UPDATE users SET password = :pwd WHERE id = :uid");
+                $stmt->bindValue(":pwd", $newHash);
+                $stmt->bindValue(":uid", $uid, PDO::PARAM_INT);
+                $stmt->execute();
+                $success = $stmt->rowCount() > 0;
             } catch (Exception $e) {
             }
         }

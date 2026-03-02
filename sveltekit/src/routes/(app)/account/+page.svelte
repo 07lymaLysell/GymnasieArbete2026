@@ -11,6 +11,14 @@
     let saving = false;
     let saveMessage = "";
 
+    // Password change state
+    let showPasswordForm = false;
+    let currentPassword = "";
+    let newPassword = "";
+    let confirmPassword = "";
+    let changing = false;
+    let changeMessage = "";
+
     // Reactive full name derived from user
     let fullName = "Inloggad användare";
 
@@ -67,6 +75,49 @@
             setTimeout(() => (saveMessage = ""), 3000);
         }
     }
+
+    // Change password handler (posts to backend endpoint)
+    async function changePassword() {
+        if (!user || typeof user.uid === "undefined") return;
+        if (newPassword !== confirmPassword) {
+            changeMessage = "Lösenorden matchar inte";
+            return;
+        }
+        if (newPassword.length < 6) {
+            changeMessage = "Lösenord måste vara minst 6 tecken";
+            return;
+        }
+
+        changing = true;
+        changeMessage = "";
+
+        try {
+            const res = await fetch("http://localhost/api/upd-password.php", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    uid: user.uid,
+                    currentPassword,
+                    newPassword,
+                }),
+            });
+
+            const data = await res.json();
+            if (data.success) {
+                changeMessage = "Lösenord uppdaterat";
+                showPasswordForm = false;
+                currentPassword = newPassword = confirmPassword = "";
+            } else {
+                changeMessage = data.message || "Ett fel uppstod";
+            }
+        } catch (e) {
+            changeMessage = "Nätverksfel";
+            console.error(e);
+        } finally {
+            changing = false;
+            setTimeout(() => (changeMessage = ""), 3000);
+        }
+    }
 </script>
 
 <main class="main-content">
@@ -92,8 +143,86 @@
 
                     <nav class="profile-actions" aria-label="Profile actions">
                         <button type="button">Redigera profil</button>
-                        <button type="button">Byt lösenord</button>
+                        <button
+                            type="button"
+                            on:click={() =>
+                                (showPasswordForm = !showPasswordForm)}
+                        >
+                            Byt lösenord
+                        </button>
                     </nav>
+
+                    {#if showPasswordForm}
+                        <div
+                            class="password-form"
+                            style="margin-top:12px; text-align:left; width:100%;"
+                        >
+                            <label>
+                                Nuvarande lösenord
+                                <input
+                                    type="password"
+                                    bind:value={currentPassword}
+                                    style="width:100%; margin-top:6px; padding:8px; border-radius:6px; border:1px solid #ddd;"
+                                />
+                            </label>
+
+                            <label style="display:block; margin-top:8px;">
+                                Nytt lösenord
+                                <input
+                                    type="password"
+                                    bind:value={newPassword}
+                                    style="width:100%; margin-top:6px; padding:8px; border-radius:6px; border:1px solid #ddd;"
+                                />
+                            </label>
+
+                            <label style="display:block; margin-top:8px;">
+                                Upprepa nytt lösenord
+                                <input
+                                    type="password"
+                                    bind:value={confirmPassword}
+                                    style="width:100%; margin-top:6px; padding:8px; border-radius:6px; border:1px solid #ddd;"
+                                />
+                            </label>
+
+                            <div
+                                style="margin-top:10px; display:flex; gap:8px; align-items:center;"
+                            >
+                                <button
+                                    on:click={changePassword}
+                                    disabled={changing ||
+                                        newPassword !== confirmPassword ||
+                                        newPassword.length < 6}
+                                >
+                                    {changing ? "Sparar..." : "Byt lösenord"}
+                                </button>
+
+                                <button
+                                    type="button"
+                                    on:click={() => {
+                                        showPasswordForm = false;
+                                        currentPassword =
+                                            newPassword =
+                                            confirmPassword =
+                                                "";
+                                    }}
+                                >
+                                    Avbryt
+                                </button>
+
+                                {#if changeMessage}
+                                    <span
+                                        style="margin-left:12px; color: {changeMessage.includes(
+                                            'fel',
+                                        )
+                                            ? 'red'
+                                            : 'green'};"
+                                    >
+                                        {changeMessage}
+                                    </span>
+                                {/if}
+                            </div>
+                        </div>
+                    {/if}
                 </div>
             </div>
 

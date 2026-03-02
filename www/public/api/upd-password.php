@@ -7,8 +7,9 @@ $data = json_decode(file_get_contents('php://input'), true) ?? [];
 if (
     $_SERVER['REQUEST_METHOD'] !== 'POST' ||
     empty($data['uid']) ||
-    !isset($data['biography']) ||
-    strlen(trim($data['biography'])) > 5000
+    empty($data['currentPassword']) ||
+    empty($data['newPassword']) ||
+    strlen($data['newPassword']) < 6
 ) {
 
     echo json_encode(['success' => false, 'message' => 'Invalid request']);
@@ -16,12 +17,10 @@ if (
 }
 
 require '../../model/DbEgyTalk.php';
-
 $db = new DbEgyTalk();
-$ok = $db->updateBiography((int) $data['uid'], trim($data['biography']));
 
-echo json_encode([
-    'success' => $ok,
-    'message' => $ok ? 'Saved' : 'Failed',
-    'biography' => trim($data['biography'])
-]);
+echo json_encode(
+    $db->setPassword((int) $data['uid'], $data['currentPassword'], $data['newPassword'])
+    ? ['success' => true, 'message' => 'Done']
+    : ['success' => false, 'message' => 'Failed']
+);
