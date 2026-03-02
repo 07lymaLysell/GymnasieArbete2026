@@ -8,6 +8,9 @@
 	function toggleMenu() {
 		hamActive = !hamActive;
 	}
+	function gotoHome() {
+		goto("/main");
+	}
 
 	function gotoAccount() {
 		goto("/account");
@@ -50,7 +53,7 @@
 		<div class="huvud-menu">
 			<ul>
 				<li>
-					<button
+					<button onclick={gotoHome}
 						><img
 							src="/assets/home_button.png"
 							alt="Home"
@@ -92,7 +95,7 @@
 		<!-- Mobile text menu (appears when hamburger is open) -->
 		{#if hamActive}
 			<ul class="mobile-menu">
-				<li><button>Home</button></li>
+				<li><button onclick={gotoHome}>Home</button></li>
 				<li><button onclick={gotoFlow}>Flow</button></li>
 				<li><button onclick={gotoMessages}>Messages</button></li>
 				<li><button onclick={gotoFriends}>Friends</button></li>
