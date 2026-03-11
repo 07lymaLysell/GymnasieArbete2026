@@ -30,6 +30,23 @@ class DbEgyTalk
 
         // Sätt PDO i error mode för att visa fel
         $this->db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+
+        // skapa tabeller om de inte finns (enkelt migrationsalternativ)
+        $this->db->exec("CREATE TABLE IF NOT EXISTS friends (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            user_id INT NOT NULL,
+            friend_id INT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE KEY uniq_pair (user_id, friend_id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8;");
+
+        $this->db->exec("CREATE TABLE IF NOT EXISTS messages (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            from_id INT NOT NULL,
+            to_id INT NOT NULL,
+            message TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8;");
     }
 
     /**
@@ -256,10 +273,12 @@ class DbEgyTalk
     {
         $users = [];
         try {
-
-            // Egen kod!
-
+            $sql = "SELECT id, display_name, username, biography AS bio FROM users ORDER BY display_name";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute();
+            $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
         } catch (Exception $e) {
+            // Handle error if needed
         }
 
         return $users;
@@ -275,7 +294,10 @@ class DbEgyTalk
     {
         $searchWord = filter_var($searchWord, FILTER_UNSAFE_RAW);
         // Ev mer om phone och mail är med i tabellen users
-        $sql = "SELECT uid, firstname, surname FROM users WHERE firstname LIKE :search OR surname LIKE :search  ORDER BY surname, firstname";
+        // Sök efter display_name eller username och returnera samma fält som getUsers
+        $sql = "SELECT id as uid, display_name, username, biography AS bio FROM users 
+                WHERE display_name LIKE :search OR username LIKE :search 
+                ORDER BY display_name";
         $stmt = $this->db->prepare($sql);
         $stmt->bindValue(":search", "%$searchWord%");
 
@@ -344,6 +366,125 @@ class DbEgyTalk
     }
 
     /**
+     * Lägg till en vänrelation
+     * @param int $userId
+     * @param int $friendId
+     * @return bool
+     */
+    function addFriend($userId, $friendId)
+    {
+        try {
+            $stmt = $this->db->prepare("INSERT IGNORE INTO friends (user_id, friend_id) VALUES (:uid, :fid)");
+            $stmt->bindValue(":uid", $userId, PDO::PARAM_INT);
+            $stmt->bindValue(":fid", $friendId, PDO::PARAM_INT);
+            return $stmt->execute();
+        } catch (Exception $e) {
+            return false;
+        }
+    }
+
+    /**
+     * Hämta lista på vänner för en användare
+     * @param int $userId
+     * @return array
+     */
+    function getFriends($userId)
+    {
+        $friends = [];
+        try {
+            $sql = "SELECT u.id, u.display_name, u.username, u.biography AS bio
+                    FROM users u
+                    JOIN friends f ON f.friend_id = u.id
+                    WHERE f.user_id = :uid
+                    ORDER BY u.display_name";
+            $stmt = $this->db->prepare($sql);
+            $stmt->bindValue(":uid", $userId, PDO::PARAM_INT);
+            $stmt->execute();
+            $friends = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (Exception $e) {
+        }
+        return $friends;
+    }
+
+    /**
+     * Skapa ett meddelande i chatten
+     * @param int $fromId
+     * @param int $toId
+     * @param string $text
+     * @return bool
+     */
+    function addMessage($fromId, $toId, $text)
+    {
+        try {
+            $stmt = $this->db->prepare("INSERT INTO messages (from_id, to_id, message) VALUES (:from, :to, :msg)");
+            $stmt->bindValue(":from", $fromId, PDO::PARAM_INT);
+            $stmt->bindValue(":to", $toId, PDO::PARAM_INT);
+            $stmt->bindValue(":msg", $text);
+            return $stmt->execute();
+        } catch (Exception $e) {
+            return false;
+        }
+    }
+
+    /**
+     * Hämta samtalslistan (en post per vän med senaste meddelande)
+     * @param int $userId
+     * @return array
+     */
+    function getConversations($userId)
+    {
+        $convs = [];
+        try {
+            $sql = "SELECT
+                        CASE
+                            WHEN m.from_id = :uid THEN m.to_id
+                            ELSE m.from_id
+                        END AS other_id,
+                        u.display_name,
+                        u.username,
+                        u.biography AS bio,
+                        m.message,
+                        m.created_at
+                    FROM messages m
+                    JOIN users u ON u.id = (CASE WHEN m.from_id = :uid THEN m.to_id ELSE m.from_id END)
+                    WHERE m.from_id = :uid OR m.to_id = :uid
+                    ORDER BY m.created_at DESC";
+            // we'll let the caller deduplicate if needed
+            $stmt = $this->db->prepare($sql);
+            $stmt->bindValue(":uid", $userId, PDO::PARAM_INT);
+            $stmt->execute();
+            $convs = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (Exception $e) {
+        }
+        return $convs;
+    }
+
+    /**
+     * Hämta meddelanden mellan två användare
+     * @param int $uid
+     * @param int $otherId
+     * @return array
+     */
+    function getMessagesBetween($uid, $otherId)
+    {
+        $msgs = [];
+        try {
+            $sql = "SELECT from_id, to_id, message, created_at
+                    FROM messages
+                    WHERE (from_id = :uid AND to_id = :other)
+                       OR (from_id = :other AND to_id = :uid)
+                    ORDER BY created_at ASC";
+            $stmt = $this->db->prepare($sql);
+            $stmt->bindValue(":uid", $uid, PDO::PARAM_INT);
+            $stmt->bindValue(":other", $otherId, PDO::PARAM_INT);
+            $stmt->execute();
+            $msgs = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (Exception $e) {
+        }
+        return $msgs;
+    }
+
+    /**
      * Verifierar om lösenord överenstämmer med användarens lösenord
      *
      * @param $uid    Användarens uid 
@@ -395,5 +536,19 @@ class DbEgyTalk
         }
 
         return $success;
+    }
+
+    function updateProfilePicture($uid, $path)
+    {
+        $stmt = $this->db->prepare("UPDATE users SET pfps = :path WHERE id = :uid");
+        $stmt->execute([':path' => $path, ':uid' => (int) $uid]);
+        return $stmt->rowCount() > 0;
+    }
+
+    function getProfilePicture($uid)
+    {
+        $stmt = $this->db->prepare("SELECT pfps FROM users WHERE id = :uid");
+        $stmt->execute([':uid' => (int) $uid]);
+        return $stmt->fetchColumn() ?: '/assets/default-pfp.png';
     }
 }

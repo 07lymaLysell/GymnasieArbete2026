@@ -1,86 +1,129 @@
 <script lang="ts">
     import { onMount } from "svelte";
+    import { authStore } from "$lib/stores/auth";
 
-    // Dummy data – byt senare mot riktig fetch från API
-    let conversations = [
-        {
-            id: 1,
-            name: "Emma Lind",
-            username: "emmalind",
-            lastMessage: "Haha ja verkligen! 😂",
-            time: "14:22",
-            unread: 2,
-            avatar: "/assets/pfp.png",
-        },
-        {
-            id: 2,
-            name: "Oskar Berg",
-            username: "oskberg",
-            lastMessage: "Tack för tipset om gymmet!",
-            time: "Igår",
-            unread: 0,
-            avatar: "/assets/pfp.png",
-        },
-        {
-            id: 3,
-            name: "Sara Karlsson",
-            username: "sarak",
-            lastMessage: "Ses imorgon 18:00?",
-            time: "09:15",
-            unread: 1,
-            avatar: "/assets/pfp.png",
-        },
-    ];
-
-    let selectedConv = conversations[0]; // Förvald konversation
-    let messageText = "";
-
-    let messages = [
-        {
-            fromMe: false,
-            text: "Hej! Hur går det med projektet?",
-            time: "14:05",
-        },
-        {
-            fromMe: true,
-            text: "Bra! Just nu fastnat lite på designen 😅",
-            time: "14:07",
-        },
-        {
-            fromMe: false,
-            text: "Haha samma här. Har du testat den nya Figma-pluginen?",
-            time: "14:10",
-        },
-        { fromMe: true, text: "Nej! Skicka länk pls 🙏", time: "14:12" },
-        {
-            fromMe: false,
-            text: "Här kommer den: https://www.figma.com/community/plugin/12345",
-            time: "14:15",
-        },
-    ];
-
-    function sendMessage() {
-        if (!messageText.trim()) return;
-        messages = [
-            ...messages,
-            { fromMe: true, text: messageText, time: "nu" },
-        ];
-        messageText = "";
-        // TODO: skicka till backend
-    }
-
-    function selectConversation(conv: {
-        id: number;
-        name: string;
+    interface Conversation {
+        other_id: number;
+        display_name: string;
         username: string;
-        lastMessage: string;
-        time: string;
-        unread: number;
-        avatar: string;
-    }) {
-        selectedConv = conv;
-        // Här skulle du normalt ladda messages för vald konversation
+        bio?: string;
+        message: string;
+        created_at: string;
     }
+    interface Msg {
+        fromMe: boolean;
+        text: string;
+        time: string;
+    }
+
+    let user: any = null;
+    authStore.subscribe((v) => (user = v.user));
+
+    let conversations: Conversation[] = [];
+    let selectedConv: Conversation | null = null;
+    let messageText = "";
+    let messages: Msg[] = [];
+
+    let searchTerm = "";
+
+    // derived list based on search term
+    $: filteredConversations = conversations.filter((c) => {
+        const nameMatch = c.display_name
+            .toLowerCase()
+            .includes(searchTerm.toLowerCase());
+        const msgMatch = c.message
+            .toLowerCase()
+            .includes(searchTerm.toLowerCase());
+        return searchTerm === "" || nameMatch || msgMatch;
+    });
+
+    async function loadConversations() {
+        if (!user) return;
+        try {
+            const res = await fetch(
+                `/api/getconversations.php?uid=${user.uid}`,
+            );
+            const data = await res.json();
+            if (data.success) {
+                conversations = data.conversations;
+            }
+        } catch (err) {
+            console.error("Failed to load conversations", err);
+        }
+    }
+
+    async function loadMessages(otherId: number) {
+        if (!user) return;
+        try {
+            const res = await fetch(
+                `/api/getmessages.php?uid=${user.uid}&other_id=${otherId}`,
+            );
+            const data = await res.json();
+            if (data.success) {
+                messages = data.messages.map((m: any) => ({
+                    fromMe: m.from_id === user.uid,
+                    text: m.message,
+                    time: m.created_at,
+                }));
+            }
+        } catch (err) {
+            console.error("Failed to load messages", err);
+        }
+    }
+
+    async function sendMessage() {
+        if (!messageText.trim() || !selectedConv || !user) return;
+        try {
+            const res = await fetch("/api/addmessage.php", {
+                method: "POST",
+                body: new URLSearchParams({
+                    from_id: String(user.uid),
+                    to_id: String(selectedConv.other_id),
+                    message: messageText,
+                }),
+            });
+            const data = await res.json();
+            if (data.success) {
+                await loadMessages(selectedConv.other_id);
+                await loadConversations();
+                messageText = "";
+            }
+        } catch (err) {
+            console.error("Send error", err);
+        }
+    }
+
+    function selectConversation(conv: Conversation) {
+        selectedConv = conv;
+        loadMessages(conv.other_id);
+    }
+
+    onMount(async () => {
+        await loadConversations();
+
+        // check for ?with=userid parameter to open chat directly
+        if (typeof window !== "undefined") {
+            const params = new URLSearchParams(window.location.search);
+            const withId = params.get("with");
+            if (withId) {
+                const other = parseInt(withId);
+                const conv = conversations.find((c) => c.other_id === other);
+                if (conv) {
+                    selectConversation(conv);
+                } else {
+                    // no conversation yet (maybe no messages), still try to load messages
+                    selectedConv = {
+                        other_id: other,
+                        display_name: "",
+                        username: "",
+                        message: "",
+                        created_at: "",
+                    } as Conversation;
+                    loadMessages(other);
+                }
+            }
+        }
+    });
 </script>
 
 <main class="main-content">
@@ -90,37 +133,35 @@
     </header>
 
     <div class="messages-layout">
-        <!-- Vänster: konversationslista -->
+        <!-- Vänster konversationslista -->
         <div class="conv-list">
             <div class="search-box">
                 <input
                     type="text"
+                    bind:value={searchTerm}
                     placeholder="Sök personer eller meddelanden..."
                 />
             </div>
 
-            {#each conversations as conv}
+            {#each filteredConversations as conv}
                 <!-- svelte-ignore a11y_click_events_have_key_events -->
                 <!-- svelte-ignore a11y_no_static_element_interactions -->
                 <div
                     class="conv-item"
-                    class:active={selectedConv?.id === conv.id}
+                    class:active={selectedConv?.other_id === conv.other_id}
                     on:click={() => selectConversation(conv)}
                 >
                     <img
-                        src={conv.avatar}
-                        alt={conv.name}
+                        src="/assets/pfp.png"
+                        alt={conv.display_name}
                         class="conv-avatar"
                     />
                     <div class="conv-info">
-                        <div class="conv-name">{conv.name}</div>
-                        <div class="conv-last">{conv.lastMessage}</div>
+                        <div class="conv-name">{conv.display_name}</div>
+                        <div class="conv-last">{conv.message}</div>
                     </div>
                     <div class="conv-meta">
-                        <div class="conv-time">{conv.time}</div>
-                        {#if conv.unread > 0}
-                            <span class="unread-badge">{conv.unread}</span>
-                        {/if}
+                        <div class="conv-time">{conv.created_at}</div>
                     </div>
                 </div>
             {/each}
@@ -131,12 +172,12 @@
             {#if selectedConv}
                 <div class="chat-header">
                     <img
-                        src={selectedConv.avatar}
-                        alt={selectedConv.name}
+                        src="/assets/pfp.png"
+                        alt={selectedConv.display_name}
                         class="chat-avatar"
                     />
                     <div>
-                        <h3>{selectedConv.name}</h3>
+                        <h3>{selectedConv.display_name}</h3>
                         <span>@{selectedConv.username}</span>
                     </div>
                 </div>
@@ -272,19 +313,6 @@
         text-align: right;
         font-size: 0.82rem;
         color: #888;
-    }
-
-    .unread-badge {
-        background: #2b6cb0;
-        color: white;
-        border-radius: 50%;
-        width: 20px;
-        height: 20px;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 0.75rem;
-        margin-top: 4px;
     }
 
     .chat-area {

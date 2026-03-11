@@ -7,41 +7,13 @@
 
     // Dummy data for now — replace with real fetch to /api/getAllPosts.php later
     onMount(() => {
-        posts = [
-            {
-                pid: 1,
-                username: "SaraK",
-                display_name: "Sara Karlsson",
-                post_txt: "Vilken underbar sol idag! 🌞",
-                date: "2 min sedan",
-                comments: 5,
-            },
-            {
-                pid: 2,
-                username: "LukasB",
-                display_name: "Lukas Berg",
-                post_txt: "Just avslutat en grym löprunda 🏃‍♂️ 8 km!",
-                date: "47 min sedan",
-                comments: 12,
-            },
-            // ... more
-        ];
+        posts = [];
     });
 
     async function addPost() {
         if (!newPostText.trim()) return;
         // TODO: call your addPost API
-        posts = [
-            {
-                pid: Date.now(),
-                username: "Du",
-                display_name: "Du",
-                post_txt: newPostText,
-                date: "just nu",
-                comments: 0,
-            },
-            ...posts,
-        ];
+        posts = [];
         newPostText = "";
     }
 </script>

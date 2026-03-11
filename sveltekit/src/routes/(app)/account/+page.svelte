@@ -19,6 +19,11 @@
     let changing = false;
     let changeMessage = "";
 
+    // Profile picture upload state
+    let uploading = false;
+    let uploadMessage = "";
+    let uploadSuccess = false;
+
     // Reactive full name derived from user
     let fullName = "Inloggad användare";
 
@@ -60,7 +65,6 @@
 
             const data = await res.json();
             if (data.success) {
-                // Update local auth store and localStorage
                 const updatedUser = { ...user, biography };
                 loginUser(updatedUser);
                 saveMessage = "Sparat";
@@ -76,7 +80,7 @@
         }
     }
 
-    // Change password handler (posts to backend endpoint)
+    // Change password handler
     async function changePassword() {
         if (!user || typeof user.uid === "undefined") return;
         if (newPassword !== confirmPassword) {
@@ -118,6 +122,73 @@
             setTimeout(() => (changeMessage = ""), 3000);
         }
     }
+
+    // Handle profile picture upload
+    async function handlePfpUpload(event: Event) {
+        const input = event.target as HTMLInputElement;
+        const file = input.files?.[0];
+        if (!file) return;
+
+        // Basic client-side validation
+        const allowedTypes = [
+            "image/jpeg",
+            "image/png",
+            "image/gif",
+            "image/webp",
+        ];
+        if (!allowedTypes.includes(file.type)) {
+            uploadMessage = "Endast jpg, png, gif eller webp tillåts";
+            uploadSuccess = false;
+            return;
+        }
+
+        if (file.size > 3 * 1024 * 1024) {
+            // 3 MB
+            uploadMessage = "Filen är för stor (max 3 MB)";
+            uploadSuccess = false;
+            return;
+        }
+
+        uploading = true;
+        uploadMessage = "Laddar upp...";
+        uploadSuccess = false;
+
+        const formData = new FormData();
+        formData.append("profile_picture", file);
+        formData.append("uid", user.uid.toString());
+
+        try {
+            const res = await fetch(
+                "http://localhost/api/upd-profile-picture.php",
+                {
+                    method: "POST",
+                    body: formData,
+                },
+            );
+
+            const data = await res.json();
+
+            if (data.success) {
+                // Update local user object and store
+                user = { ...user, profile_picture: data.path };
+                loginUser(user);
+
+                uploadMessage = "Profilbild uppdaterad!";
+                uploadSuccess = true;
+            } else {
+                uploadMessage = data.message || "Kunde inte ladda upp bilden";
+                uploadSuccess = false;
+            }
+        } catch (err) {
+            uploadMessage = "Nätverksfel vid uppladdning";
+            uploadSuccess = false;
+            console.error(err);
+        } finally {
+            uploading = false;
+            input.value = ""; // reset file input
+            setTimeout(() => (uploadMessage = ""), 4000);
+        }
+    }
 </script>
 
 <main class="main-content">
@@ -131,15 +202,36 @@
             <div class="profile-left">
                 <figure class="pfp">
                     <img
-                        src="/assets/pfp.png"
+                        src={user.profile_picture || "/assets/pfp.png"}
                         alt="Profilbild för {fullName}"
                     />
+
+                    <label for="pfp-upload" class="upload-label">
+                        {uploading ? "Laddar upp..." : "Byt profilbild"}
+                    </label>
+
+                    <input
+                        type="file"
+                        id="pfp-upload"
+                        accept="image/jpeg,image/png,image/gif,image/webp"
+                        hidden
+                        on:change={handlePfpUpload}
+                        disabled={uploading}
+                    />
                 </figure>
+
+                {#if uploadMessage}
+                    <p
+                        class:success={uploadSuccess}
+                        class:error={!uploadSuccess}
+                    >
+                        {uploadMessage}
+                    </p>
+                {/if}
 
                 <div class="basic-info">
                     <h2 class="name">{fullName}</h2>
                     <p class="role">{user.role || "Medlem"}</p>
-                    <!-- fallback if no role exists -->
 
                     <nav class="profile-actions" aria-label="Profile actions">
                         <button type="button">Redigera profil</button>
@@ -246,18 +338,12 @@
                             <dt>Efternamn</dt>
                             <dd>{user.surname || "—"}</dd>
                         </div>
-                        <!-- Add more fields if they exist in user object, e.g. -->
-                        <!-- <div><dt>Ålder</dt><dd>{user.age || "—"}</dd></div> -->
-                        <!-- <div><dt>Land</dt><dd>{user.location || "Sverige"}</dd></div> -->
                     </dl>
                 </section>
-
-                <!-- Inside .profile-right -->
 
                 <section class="other-panel">
                     <h3>Om mig</h3>
 
-                    <!-- svelte-ignore element_invalid_self_closing_tag -->
                     <textarea
                         bind:value={biography}
                         placeholder="Berätta lite om dig själv..."
@@ -313,7 +399,6 @@
         box-sizing: border-box;
     }
 
-    /* header */
     .page-header {
         margin-bottom: 18px;
     }
@@ -326,14 +411,12 @@
         color: var(--muted);
     }
 
-    /* profile card: grid layout */
     .profile-card {
         display: grid;
         grid-template-columns: 320px 1fr;
         gap: var(--gap);
     }
 
-    /* left column */
     .profile-left {
         display: flex;
         flex-direction: column;
@@ -342,16 +425,56 @@
         text-align: center;
     }
 
-    .pfp img {
+    .pfp {
+        position: relative;
         width: 140px;
         height: 140px;
+    }
+
+    .pfp img {
+        width: 100%;
+        height: 100%;
         object-fit: cover;
         border-radius: 50%;
         border: 4px solid rgba(0, 0, 0, 0.06);
         display: block;
     }
 
-    /* basic info & actions */
+    .upload-label {
+        position: absolute;
+        bottom: 8px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(0, 0, 0, 0.65);
+        color: white;
+        padding: 6px 14px;
+        border-radius: 999px;
+        font-size: 0.82rem;
+        cursor: pointer;
+        pointer-events: auto;
+        white-space: nowrap;
+    }
+
+    .upload-label:hover {
+        background: rgba(0, 0, 0, 0.8);
+    }
+
+    p.success {
+        color: #2e7d32;
+        font-size: 0.9rem;
+        margin-top: 8px;
+    }
+
+    p.error {
+        color: #c62828;
+        font-size: 0.9rem;
+        margin-top: 8px;
+    }
+
+    .basic-info {
+        text-align: center;
+    }
+
     .name {
         margin: 6px 0 2px;
         font-size: 1.1rem;
@@ -366,6 +489,7 @@
         display: flex;
         gap: 8px;
         margin-top: 8px;
+        justify-content: center;
     }
     .profile-actions button {
         padding: 8px 12px;
@@ -379,7 +503,6 @@
         transform: translateY(-1px);
     }
 
-    /* right column panels */
     .info-panel,
     .other-panel {
         background: rgba(255, 255, 255, 0.6);
@@ -407,7 +530,6 @@
         color: #222;
     }
 
-    /* responsive: stack columns on small screens */
     @media (max-width: 800px) {
         .profile-card {
             grid-template-columns: 1fr;
@@ -418,11 +540,12 @@
             text-align: left;
             gap: 14px;
         }
-        .pfp img {
+        .pfp {
             width: 84px;
             height: 84px;
         }
         .profile-actions {
+            justify-content: flex-start;
             margin-left: auto;
         }
     }

@@ -1,21 +1,88 @@
 <script lang="ts">
+    import { onMount } from "svelte";
+    import { authStore } from "$lib/stores/auth";
+    import { goto } from "$app/navigation";
+
+    interface User {
+        // API sometimes returns `id` (friends) and sometimes `uid` (search results)
+        id?: number;
+        uid?: number;
+        display_name: string;
+        username: string;
+        bio: string;
+    }
+
     let search = "";
-    // Dummy users — replace with fetch to your findUsers / getUsers API
-    let users = [
-        {
-            id: 1,
-            display_name: "Emma Lind",
-            username: "emmalind",
-            bio: "Älskar att baka och resa",
-        },
-        {
-            id: 2,
-            display_name: "Oskar Berg",
-            username: "oskberg",
-            bio: "Fotograf och kaffeentusiast",
-        },
-        // ...
-    ];
+    let searchResults: User[] = [];
+    let friends: User[] = [];
+    let user: any = null;
+
+    authStore.subscribe((val) => {
+        user = val.user;
+        if (user) {
+            loadFriends();
+        }
+    });
+
+    async function loadFriends() {
+        if (!user) return;
+        try {
+            const response = await fetch(`/api/getfriends.php?uid=${user.uid}`);
+            const data = await response.json();
+            if (data.success) {
+                friends = data.friends;
+            }
+        } catch (err) {
+            console.error("Failed to load friends", err);
+        }
+    }
+
+    async function searchUsers() {
+        if (!search.trim()) {
+            searchResults = [];
+            return;
+        }
+        try {
+            const response = await fetch(
+                `/api/findusers.php?q=${encodeURIComponent(search)}`,
+            );
+            const data = await response.json();
+            if (data.success) {
+                // exclude self and already friended
+                searchResults = data.users.filter(
+                    (u: any) =>
+                        u.uid !== user.uid &&
+                        !friends.find((f) => f.id === u.uid),
+                );
+            }
+        } catch (err) {
+            console.error("Search error", err);
+        }
+    }
+
+    async function addFriend(uid: number) {
+        if (!user) return;
+        try {
+            const response = await fetch("/api/addfriend.php", {
+                method: "POST",
+                body: new URLSearchParams({
+                    uid: String(user.uid),
+                    friend_id: String(uid),
+                }),
+            });
+            const data = await response.json();
+            if (data.success) {
+                await loadFriends();
+                await searchUsers();
+            }
+        } catch (err) {
+            console.error("Failed to add friend", err);
+        }
+    }
+
+    function goToConversation(id: number) {
+        goto(`/messages?with=${id}`);
+    }
 </script>
 
 <main class="main-content">
@@ -28,11 +95,41 @@
             type="text"
             bind:value={search}
             placeholder="Sök efter användare..."
+            on:input={searchUsers}
         />
     </div>
 
+    {#if search && searchResults.length > 0}
+        <section class="search-results">
+            <h2>Sökresultat</h2>
+            <div class="friends-grid">
+                {#each searchResults as u}
+                    <div class="user-card">
+                        <img
+                            src="/assets/pfp.png"
+                            alt={u.display_name}
+                            class="mini-pfp"
+                        />
+                        <div>
+                            <strong>{u.display_name}</strong>
+                            <div class="username">@{u.username}</div>
+                            <p class="bio">{u.bio}</p>
+                        </div>
+                        <button
+                            class="add-btn"
+                            on:click={() => addFriend(u.uid ?? u.id ?? 0)}
+                        >
+                            Lägg till
+                        </button>
+                    </div>
+                {/each}
+            </div>
+        </section>
+    {/if}
+
+    <h2>Dina vänner</h2>
     <div class="friends-grid">
-        {#each users as u}
+        {#each friends as u}
             <div class="user-card">
                 <img
                     src="/assets/pfp.png"
@@ -44,7 +141,12 @@
                     <div class="username">@{u.username}</div>
                     <p class="bio">{u.bio}</p>
                 </div>
-                <button class="add-btn">Lägg till</button>
+                <button
+                    class="add-btn"
+                    on:click={() => goToConversation(u.id!)}
+                >
+                    Meddela
+                </button>
             </div>
         {/each}
     </div>
