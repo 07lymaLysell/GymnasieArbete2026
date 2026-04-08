@@ -12,10 +12,10 @@
         bio: string;
     }
 
-    let search = "";
-    let searchResults: User[] = [];
-    let friends: User[] = [];
-    let user: any = null;
+    let search = $state("");
+    let searchResults = $state<User[]>([]);
+    let friends = $state<User[]>([]);
+    let user = $state<any>(null);
 
     authStore.subscribe((val) => {
         user = val.user;
@@ -95,7 +95,7 @@
             type="text"
             bind:value={search}
             placeholder="Sök efter användare..."
-            on:input={searchUsers}
+            oninput={searchUsers}
         />
     </div>
 
@@ -117,7 +117,7 @@
                         </div>
                         <button
                             class="add-btn"
-                            on:click={() => addFriend(u.uid ?? u.id ?? 0)}
+                            onclick={() => addFriend(u.uid ?? u.id ?? 0)}
                         >
                             Lägg till
                         </button>
@@ -141,10 +141,7 @@
                     <div class="username">@{u.username}</div>
                     <p class="bio">{u.bio}</p>
                 </div>
-                <button
-                    class="add-btn"
-                    on:click={() => goToConversation(u.id!)}
-                >
+                <button class="add-btn" onclick={() => goToConversation(u.id!)}>
                     Meddela
                 </button>
             </div>

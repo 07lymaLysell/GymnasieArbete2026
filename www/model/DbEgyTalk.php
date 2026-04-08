@@ -193,20 +193,20 @@ class DbEgyTalk
      * @param  $comment   Kommentar
      * @return true om det lyckades, annars false
      */
-    function addComment($uid, $pid, $comment)
-    {
-        $pid = filter_var($pid, FILTER_SANITIZE_NUMBER_INT);
-        $comment = filter_var($comment, FILTER_SANITIZE_SPECIAL_CHARS);
+    // function addComment($uid, $pid, $comment)
+    // {
+    //     $pid = filter_var($pid, FILTER_SANITIZE_NUMBER_INT);
+    //     $comment = filter_var($comment, FILTER_SANITIZE_SPECIAL_CHARS);
 
-        try {
+    //     try {
 
-            // Egen kod!
+    //         // Egen kod!
 
-            //return $stmt->execute();
-        } catch (Exception $e) {
-            return false;
-        }
-    }
+    //         //return $stmt->execute();
+    //     } catch (Exception $e) {
+    //         return false;
+    //     }
+    // }
 
     /**
      * Kontrollerar om ett användarnamn redan finns
@@ -449,7 +449,6 @@ class DbEgyTalk
                     JOIN users u ON u.id = (CASE WHEN m.from_id = :uid THEN m.to_id ELSE m.from_id END)
                     WHERE m.from_id = :uid OR m.to_id = :uid
                     ORDER BY m.created_at DESC";
-            // we'll let the caller deduplicate if needed
             $stmt = $this->db->prepare($sql);
             $stmt->bindValue(":uid", $userId, PDO::PARAM_INT);
             $stmt->execute();
@@ -551,4 +550,114 @@ class DbEgyTalk
         $stmt->execute([':uid' => (int) $uid]);
         return $stmt->fetchColumn() ?: '/assets/default-pfp.png';
     }
+
+    /**
+     * Hämtar alla trådar (posts) från databasen
+     * @return array Lista med trådar (assoc arrays)
+     */
+    public function getAllThreads()
+    {
+        try {
+            $stmt = $this->db->prepare("
+            SELECT 
+                t.id AS thread_id,
+                t.user_id,
+                t.content,
+                t.created_at,
+                u.username,
+                u.display_name,
+                (SELECT COUNT(*) FROM comments c WHERE c.thread_id = t.id) AS comment_count
+            FROM threads t
+            LEFT JOIN users u ON t.user_id = u.id
+            ORDER BY t.created_at DESC
+            LIMIT 50
+        ");
+
+            $stmt->execute();
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            error_log("getAllThreads error: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Lägger till en ny tråd (post)
+     */
+    public function addThread($user_id, $content)
+    {
+        try {
+            $stmt = $this->db->prepare("
+            INSERT INTO threads (user_id, content, created_at)
+            VALUES (:uid, :content, NOW())
+        ");
+            $stmt->execute([
+                ':uid' => (int) $user_id,
+                ':content' => $content
+            ]);
+            return $stmt->rowCount() > 0;
+        } catch (PDOException $e) {
+            error_log("addThread PDO error: " . $e->getMessage());
+            return false;
+        } catch (Exception $e) {
+            error_log("addThread general error: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Hämtar alla kommentarer för en given tråd
+     */
+    public function getCommentsForThread($thread_id)
+    {
+        try {
+            $stmt = $this->db->prepare("
+            SELECT 
+                c.id,
+                c.content,
+                c.created_at,
+                u.username,
+                u.display_name
+            FROM comments c
+            LEFT JOIN users u ON c.user_id = u.id
+            WHERE c.thread_id = :tid
+            ORDER BY c.created_at ASC
+        ");
+            $stmt->execute([':tid' => (int) $thread_id]);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            error_log("getCommentsForThread error: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Lägger till en kommentar
+     */
+    public function addComment($thread_id, $user_id, $content)
+    {
+        try {
+            $stmt = $this->db->prepare("
+            INSERT INTO comments (thread_id, user_id, content, created_at)
+            VALUES (:tid, :uid, :content, NOW())
+        ");
+            $stmt->execute([
+                ':tid' => (int) $thread_id,
+                ':uid' => (int) $user_id,
+                ':content' => $content
+            ]);
+            return $stmt->rowCount() > 0;
+        } catch (PDOException $e) {
+            error_log("addComment error: " . $e->getMessage());
+            return false;
+        }
+    }
+
+
+
+
+
+
+
+
 }

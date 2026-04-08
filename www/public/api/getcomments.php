@@ -2,10 +2,13 @@
 session_start();
 
 header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: POST, OPTIONS');
+header('Access-Control-Allow-Methods: GET, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type');
 header('Content-Type: application/json');
 header('Access-Control-Allow-Credentials: true');
+
+include_once('../../model/DbEgyTalk.php');
+$db = new DbEgyTalk();
 
 $thread_id = isset($_GET['thread_id']) ? (int) $_GET['thread_id'] : 0;
 
