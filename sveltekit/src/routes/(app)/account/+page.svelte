@@ -1,6 +1,6 @@
 <script lang="ts">
     import { goto } from "$app/navigation";
-    import { authStore, loginUser } from "$lib/stores/auth";
+    import { authStore, loginUser, logoutUser } from "$lib/stores/auth";
     import { onMount } from "svelte";
 
     // Local user object populated from authStore
@@ -24,6 +24,11 @@
     let uploadMessage = "";
     let uploadSuccess = false;
 
+    let showEditProfile = false;
+    let newUsername = "";
+    let editMessage = "";
+    let editingUsername = false;
+
     // Reactive full name derived from user
     let fullName = "Inloggad användare";
 
@@ -33,6 +38,7 @@
             if (auth && auth.isLoggedIn && auth.user) {
                 user = auth.user;
                 biography = user.biography || "";
+                newUsername = user.username || "";
                 // Compute fullName
                 fullName =
                     (
@@ -121,6 +127,55 @@
             changing = false;
             setTimeout(() => (changeMessage = ""), 3000);
         }
+    }
+
+    async function saveUsername() {
+        if (!user || typeof user.uid === "undefined") return;
+        if (!newUsername.trim()) {
+            editMessage = "Användarnamn får inte vara tomt";
+            return;
+        }
+        if (newUsername === user.username) {
+            editMessage = "Användarnamnet är redan detsamma";
+            return;
+        }
+
+        editingUsername = true;
+        editMessage = "";
+
+        try {
+            const res = await fetch("http://localhost/api/upd-username.php", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    uid: user.uid,
+                    username: newUsername.trim(),
+                }),
+            });
+            const data = await res.json();
+
+            if (data.success) {
+                const updatedUser = { ...user, username: newUsername.trim() };
+                user = updatedUser;
+                loginUser(updatedUser);
+                editMessage = "Användarnamnet uppdaterades";
+                showEditProfile = false;
+            } else {
+                editMessage =
+                    data.message || "Kunde inte uppdatera användarnamn";
+            }
+        } catch (err) {
+            editMessage = "Nätverksfel";
+            console.error(err);
+        } finally {
+            editingUsername = false;
+            setTimeout(() => (editMessage = ""), 4000);
+        }
+    }
+
+    function logout() {
+        logoutUser();
+        goto("/");
     }
 
     // Handle profile picture upload
@@ -234,7 +289,15 @@
                     <p class="role">{user.role || "Medlem"}</p>
 
                     <nav class="profile-actions" aria-label="Profile actions">
-                        <button type="button">Redigera profil</button>
+                        <button
+                            type="button"
+                            on:click={() =>
+                                (showEditProfile = !showEditProfile)}
+                        >
+                            {showEditProfile
+                                ? "Stäng redigering"
+                                : "Redigera profil"}
+                        </button>
                         <button
                             type="button"
                             on:click={() =>
@@ -242,7 +305,65 @@
                         >
                             Byt lösenord
                         </button>
+                        <button type="button" on:click={logout}>
+                            Logga ut
+                        </button>
                     </nav>
+
+                    {#if showEditProfile}
+                        <div
+                            class="edit-profile-form"
+                            style="margin-top: 12px; text-align:left; width:100%;"
+                        >
+                            <label style="display:block;">
+                                Användarnamn
+                                <input
+                                    type="text"
+                                    bind:value={newUsername}
+                                    placeholder="Nytt användarnamn"
+                                    style="width:100%; margin-top:6px; padding:8px; border-radius:6px; border:1px solid #ddd;"
+                                />
+                            </label>
+
+                            <div
+                                style="margin-top:10px; display:flex; gap:8px; align-items:center;"
+                            >
+                                <button
+                                    type="button"
+                                    on:click={saveUsername}
+                                    disabled={editingUsername ||
+                                        !newUsername.trim() ||
+                                        newUsername === user.username}
+                                >
+                                    {editingUsername
+                                        ? "Sparar..."
+                                        : "Spara användarnamn"}
+                                </button>
+                                <button
+                                    type="button"
+                                    on:click={() => {
+                                        showEditProfile = false;
+                                        newUsername = user.username || "";
+                                        editMessage = "";
+                                    }}
+                                >
+                                    Avbryt
+                                </button>
+
+                                {#if editMessage}
+                                    <span
+                                        style="margin-left:12px; color: {editMessage.includes(
+                                            'fel',
+                                        )
+                                            ? 'red'
+                                            : 'green'};"
+                                    >
+                                        {editMessage}
+                                    </span>
+                                {/if}
+                            </div>
+                        </div>
+                    {/if}
 
                     {#if showPasswordForm}
                         <div
@@ -349,7 +470,7 @@
                         placeholder="Berätta lite om dig själv..."
                         rows="5"
                         style="width:100%; padding:12px; border-radius:8px; border:1px solid #ddd;"
-                    />
+                    ></textarea>
 
                     <div style="margin-top:12px;">
                         <button

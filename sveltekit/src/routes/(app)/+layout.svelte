@@ -3,7 +3,7 @@
 
 	import { goto } from "$app/navigation";
 
-	let hamActive = false;
+	let hamActive = $state(false);
 
 	function toggleMenu() {
 		hamActive = !hamActive;

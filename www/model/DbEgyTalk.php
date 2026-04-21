@@ -229,6 +229,55 @@ class DbEgyTalk
         }
     }
 
+    function isUsernameTakenByOther($username, $uid)
+    {
+        $username = trim(filter_var($username, FILTER_UNSAFE_RAW));
+        try {
+            $stmt = $this->db->prepare("SELECT COUNT(*) as count FROM users WHERE username = :username AND id != :uid");
+            $stmt->bindValue(":username", $username);
+            $stmt->bindValue(":uid", (int) $uid, PDO::PARAM_INT);
+            $stmt->execute();
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            return $result['count'] > 0;
+        } catch (Exception $e) {
+            return false;
+        }
+    }
+
+    function updateUsername($uid, $username)
+    {
+        $username = trim(filter_var($username, FILTER_UNSAFE_RAW));
+        if ($username === '' || strlen($username) < 3 || strlen($username) > 30) {
+            return false;
+        }
+
+        try {
+            $stmt = $this->db->prepare("SELECT username FROM users WHERE id = :uid");
+            $stmt->bindValue(":uid", (int) $uid, PDO::PARAM_INT);
+            $stmt->execute();
+            $existing = $stmt->fetch(PDO::FETCH_ASSOC);
+            if (!$existing) {
+                return false;
+            }
+
+            if ($existing['username'] === $username) {
+                return true;
+            }
+
+            if ($this->isUsernameTakenByOther($username, $uid)) {
+                return false;
+            }
+
+            $stmt = $this->db->prepare("UPDATE users SET username = :username WHERE id = :uid");
+            $stmt->bindValue(":username", $username);
+            $stmt->bindValue(":uid", (int) $uid, PDO::PARAM_INT);
+            $stmt->execute();
+            return $stmt->rowCount() > 0;
+        } catch (Exception $e) {
+            return false;
+        }
+    }
+
     /**
      * Lägger till en ny användare
      *

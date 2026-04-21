@@ -163,8 +163,6 @@
             {#each threads as thread (thread.thread_id)}
                 <div class="thread-card">
                     <div class="thread-header">
-                        ￼
-
                         <img
                             src="/assets/pfp.png"
                             alt={thread.display_name}
