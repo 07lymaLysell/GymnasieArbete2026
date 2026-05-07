@@ -14,24 +14,24 @@ class DbEgyTalk
     /**
      * DbEgyTalk constructor.
      *
-     * Skapar en koppling till databaseb egytalk
+     * Skapar en koppling till databasen Social_app
      */
     public function __construct()
     {
-        // Definierar konstanter med användarinformation.
+        // Definierar konstanter med användarinformation
         define('DB_USER', 'root');
         define('DB_PASSWORD', '12345');
         define('DB_HOST', 'mariadb');
         define('DB_NAME', 'Social_app');
 
-        // Skapar en anslutning till MySql och databasen world
+        // Skapar en anslutning till MySQL och databasen
         $dsn = 'mysql:host=' . DB_HOST . ';dbname=' . DB_NAME . ';charset=utf8';
         $this->db = new PDO($dsn, DB_USER, DB_PASSWORD);
 
         // Sätt PDO i error mode för att visa fel
         $this->db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-        // skapa tabeller om de inte finns (enkelt migrationsalternativ)
+        // Skapa tabeller om de inte finns (enkelt migrationsalternativ)
         $this->db->exec("CREATE TABLE IF NOT EXISTS friends (
             id INT AUTO_INCREMENT PRIMARY KEY,
             user_id INT NOT NULL,
@@ -58,20 +58,21 @@ class DbEgyTalk
      * @param  $passWord  Lösenord
      * @return $response  användardata eller tom [] om inloggning misslyckas
      */
-    function auth($userName, $passWord): array
+    public function auth($userName, $passWord): array
     {
         $userName = trim($userName);
         $response = [];
 
-        /* Bygger upp sql frågan */
+        // Bygger upp SQL-frågan
         $stmt = $this->db->prepare("SELECT * FROM users WHERE username = :username");
         $stmt->execute([":username" => $userName]);
 
-        /** Kontroll att resultat finns */
+        // Kontroll att resultat finns
         if ($stmt->rowCount() == 1) {
-            // Hämtar användaren, kan endast vara 1 person
+            // Hämtar användaren (kan endast vara 1 person)
             $user = $stmt->fetch(PDO::FETCH_ASSOC);
-            // Kontrollerar lösenordet, och allt ok.
+
+            // Kontrollerar lösenordet
             if (password_verify($passWord, $user['password'])) {
                 $response['uid'] = $user['id'];
                 $response['username'] = $user['username'];
@@ -90,146 +91,27 @@ class DbEgyTalk
     }
 
     /**
-     * Hämtar anvädardata från användare med secifikt användarID
-     * 
-     * @param  $uid      användarID
-     * @return $response användardata eller tom [] om ingen anvädare hittats eller fel inträffat
-     */
-    function getUserFromUid($uid)
-    {
-        $response = [];
-
-        // Egen kod!
-
-        return $response;
-    }
-
-    /**
-     * Hämtar alla poster som gjorts på egytalk
-     *
-     * @return array med alla poster
-     */
-    function getAllPosts()
-    {
-        $posts = [];
-
-        try {
-            $sqlkod = "SELECT post.*, users.firstname, users.surname FROM post 
-                NATURAL JOIN users ORDER BY post.date DESC";
-            $stmt = $this->db->prepare($sqlkod);
-            $stmt->execute();
-
-            $posts = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-            for ($i = 0; $i < count($posts); $i++) {
-                $posts[$i]['comments'] = $this->getComments($posts[$i]['pid']);
-            }
-        } catch (Exception $e) {
-        }
-
-        return $posts;
-    }
-
-    /**
-     * Hämtar poster för en användare,
-     * sorterade efter publiceringsdatum
-     *
-     * @param   $uid     användar-ID för användaren
-     * @return  array    med statusuppdateringar sorterade efter datum
-     */
-    function getPosts($uid)
-    {
-        $posts = [];
-
-        // Egen kod!
-
-        return $posts;
-    }
-
-    /**
-     * Hämtar alla kommentarer till en post
-     *
-     * @param  $pid   postens ID-nummer
-     * @return array  med kommentarer sorterade efter datum
-     */
-    function getComments($pid)
-    {
-        $comments = [];
-
-        // Egen kod!
-
-        return $comments;
-    }
-
-    /**
-     * Skapar ny samtalstråd.
-     *
-     * @param  $uid       Användar-ID
-     * @param  $postTxt   Postat inlägg
-     * @return true       om det lyckades, annars false
-     */
-    function addPost($uid, $postTxt)
-    {
-        $postTxt = filter_var($postTxt, FILTER_SANITIZE_SPECIAL_CHARS);
-
-        try {
-            $stmt = $this->db->prepare("INSERT INTO post(uid, post_txt, date) VALUES(:uid, :post, :date)");
-
-            $stmt->bindValue(":uid", $uid);
-            $stmt->bindValue(":post", $postTxt);
-            $stmt->bindValue(":date", date("Y-m-d H:i:s"));
-
-            return $stmt->execute();
-        } catch (Exception $e) {
-            return false;
-        }
-    }
-
-    /**
-     * Lägger till en ny kommentar till en post.
-     *
-     * @param  $userID    Användar-ID för den som skriver kommentaren
-     * @param  $statusID  Status-ID för statusuppdatering som kommenteras
-     * @param  $comment   Kommentar
-     * @return true om det lyckades, annars false
-     */
-    // function addComment($uid, $pid, $comment)
-    // {
-    //     $pid = filter_var($pid, FILTER_SANITIZE_NUMBER_INT);
-    //     $comment = filter_var($comment, FILTER_SANITIZE_SPECIAL_CHARS);
-
-    //     try {
-
-    //         // Egen kod!
-
-    //         //return $stmt->execute();
-    //     } catch (Exception $e) {
-    //         return false;
-    //     }
-    // }
-
-    /**
      * Kontrollerar om ett användarnamn redan finns
      *
      * @param  $user    Användarnamn
      * @return true om användarnamnet finns, annars false
      */
-    function userExists($user)
-    {
-        $user = trim(filter_var($user, FILTER_UNSAFE_RAW));
+    /* function userExists($user)
+     {
+         $user = trim(filter_var($user, FILTER_UNSAFE_RAW));
 
-        try {
-            $stmt = $this->db->prepare("SELECT COUNT(*) as count FROM users WHERE username = :user");
-            $stmt->bindValue(":user", $user);
-            $stmt->execute();
-            $result = $stmt->fetch(PDO::FETCH_ASSOC);
-            return $result['count'] > 0;
-        } catch (Exception $e) {
-            return false;
-        }
-    }
-
-    function isUsernameTakenByOther($username, $uid)
+         try {
+             $stmt = $this->db->prepare("SELECT COUNT(*) as count FROM users WHERE username = :user");
+             $stmt->bindValue(":user", $user);
+             $stmt->execute();
+             $result = $stmt->fetch(PDO::FETCH_ASSOC);
+             return $result['count'] > 0;
+         } catch (Exception $e) {
+             return false;
+         }
+     }
+ */
+    public function isUsernameTakenByOther($username, $uid)
     {
         $username = trim(filter_var($username, FILTER_UNSAFE_RAW));
         try {
@@ -244,7 +126,7 @@ class DbEgyTalk
         }
     }
 
-    function updateUsername($uid, $username)
+    public function updateUsername($uid, $username)
     {
         $username = trim(filter_var($username, FILTER_UNSAFE_RAW));
         if ($username === '' || strlen($username) < 3 || strlen($username) > 30) {
@@ -286,9 +168,9 @@ class DbEgyTalk
      * @param  $user    Användarnamn
      * @param  $email   Email
      * @param  $pwd     Lösenord
-     * @return true om det lyckades, annars false
+     * @return bool     true om det lyckades, annars false
      */
-    function addUser($fname, $sname, $user, $email, $pwd)
+    public function addUser($fname, $sname, $user, $email, $pwd)
     {
         $fname = filter_var($fname, FILTER_SANITIZE_SPECIAL_CHARS);
         $sname = filter_var($sname, FILTER_SANITIZE_SPECIAL_CHARS);
@@ -308,17 +190,17 @@ class DbEgyTalk
 
             return $stmt->execute();
         } catch (Exception $e) {
-            // Logga fel för debugging
             error_log("AddUser Error: " . $e->getMessage());
             return false;
         }
     }
 
     /**
-     * Hämtar alla avändare i nätverket
-     * @return array med användare
+     * Hämtar alla användare i nätverket
+     * 
+     * @return array Lista med användare
      */
-    function getUsers()
+    public function getUsers()
     {
         $users = [];
         try {
@@ -327,23 +209,21 @@ class DbEgyTalk
             $stmt->execute();
             $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
         } catch (Exception $e) {
-            // Handle error if needed
+            // Hantera fel vid behov
         }
 
         return $users;
     }
 
     /**
-     * Söker efter användare.
+     * Söker efter användare
      *
-     * @param  $searchWord    Sökord
-     * @return array med användare
+     * @param  $searchWord  Sökord
+     * @return array        Lista med matchande användare
      */
-    function findUsers($searchWord)
+    public function findUsers($searchWord)
     {
         $searchWord = filter_var($searchWord, FILTER_UNSAFE_RAW);
-        // Ev mer om phone och mail är med i tabellen users
-        // Sök efter display_name eller username och returnera samma fält som getUsers
         $sql = "SELECT id as uid, display_name, username, biography AS bio FROM users 
                 WHERE display_name LIKE :search OR username LIKE :search 
                 ORDER BY display_name";
@@ -356,52 +236,13 @@ class DbEgyTalk
     }
 
     /**
-     * Returnerar användarinstälningar
-     * om usertabellen har  mail och phone
+     * Uppdaterar användarens biografifält
      *
-     * @param  $uid      användarens uid
-     * @return json-obj  med användardata, mail, phone
+     * @param  int $uid     Användarens ID
+     * @param  string $bio  Ny biografi
+     * @return bool         true om någon rad uppdaterades
      */
-    function getSettings($uid)
-    {
-        $settings = [];
-
-        try {
-            $stmt = $this->db->prepare("SELECT mail, phone FROM users WHERE uid = :uid");
-            $stmt->bindValue(":uid", $uid);
-
-            if ($stmt->execute())
-                $settings = $stmt->fetch(PDO::FETCH_ASSOC);
-        } catch (Exception $e) {
-        }
-
-        return $settings;
-    }
-
-    /**
-     * Uppdaterar användarinstälningar
-     *
-     * @param  $uid      användarens uid
-     * @param  $settings array med inställningar, $settings['phone'], $settings['mail']
-     * @return true      om uppdateringen lyckades
-     */
-    function setSettings($uid, $settings)
-    {
-        $success = false;
-
-        // Egen kod!
-
-        return $success;
-    }
-
-    /**
-     * Uppdaterar användarens biography-fält
-     *
-     * @param int $uid
-     * @param string $bio
-     * @return bool true om någon rad uppdaterades
-     */
-    function updateBiography($uid, $bio)
+    public function updateBiography($uid, $bio)
     {
         try {
             $stmt = $this->db->prepare("UPDATE users SET biography = :bio WHERE id = :uid");
@@ -416,11 +257,12 @@ class DbEgyTalk
 
     /**
      * Lägg till en vänrelation
-     * @param int $userId
-     * @param int $friendId
-     * @return bool
+     * 
+     * @param  int $userId   Användarens ID
+     * @param  int $friendId Vänens ID
+     * @return bool          true om det lyckades
      */
-    function addFriend($userId, $friendId)
+    public function addFriend($userId, $friendId)
     {
         try {
             $stmt = $this->db->prepare("INSERT IGNORE INTO friends (user_id, friend_id) VALUES (:uid, :fid)");
@@ -434,10 +276,11 @@ class DbEgyTalk
 
     /**
      * Hämta lista på vänner för en användare
-     * @param int $userId
-     * @return array
+     * 
+     * @param  int $userId   Användarens ID
+     * @return array         Lista med vänner
      */
-    function getFriends($userId)
+    public function getFriends($userId)
     {
         $friends = [];
         try {
@@ -457,12 +300,13 @@ class DbEgyTalk
 
     /**
      * Skapa ett meddelande i chatten
-     * @param int $fromId
-     * @param int $toId
-     * @param string $text
-     * @return bool
+     * 
+     * @param  int $fromId    Avsändarens ID
+     * @param  int $toId      Mottagarens ID
+     * @param  string $text   Meddelandetext
+     * @return bool           true om det lyckades
      */
-    function addMessage($fromId, $toId, $text)
+    public function addMessage($fromId, $toId, $text)
     {
         try {
             $stmt = $this->db->prepare("INSERT INTO messages (from_id, to_id, message) VALUES (:from, :to, :msg)");
@@ -477,10 +321,11 @@ class DbEgyTalk
 
     /**
      * Hämta samtalslistan (en post per vän med senaste meddelande)
-     * @param int $userId
-     * @return array
+     * 
+     * @param  int $userId   Användarens ID
+     * @return array         Lista med konversationer
      */
-    function getConversations($userId)
+    public function getConversations($userId)
     {
         $convs = [];
         try {
@@ -509,11 +354,12 @@ class DbEgyTalk
 
     /**
      * Hämta meddelanden mellan två användare
-     * @param int $uid
-     * @param int $otherId
-     * @return array
+     * 
+     * @param  int $uid      Användarens ID
+     * @param  int $otherId  Annan användarens ID
+     * @return array         Lista med meddelanden
      */
-    function getMessagesBetween($uid, $otherId)
+    public function getMessagesBetween($uid, $otherId)
     {
         $msgs = [];
         try {
@@ -535,23 +381,22 @@ class DbEgyTalk
     /**
      * Verifierar om lösenord överenstämmer med användarens lösenord
      *
-     * @param $uid    Användarens uid 
-     * @param $pwd    Lösenord som skall testas
-     * @return true   om löseordet är korrekt
+     * @param  int $uid     Användarens ID
+     * @param  string $pwd  Lösenord som skall testas
+     * @return bool         true om lösenordet är korrekt
      */
     private function verifyPassword($uid, $pwd)
     {
         $verified = false;
 
         try {
-            $stmt = $this->db->prepare("SELECT password FROM users WHERE id = :uid ");
+            $stmt = $this->db->prepare("SELECT password FROM users WHERE id = :uid");
             $stmt->bindValue(":uid", $uid, PDO::PARAM_INT);
 
             if ($stmt->execute()) {
                 $user = $stmt->fetch(PDO::FETCH_ASSOC);
                 $verified = password_verify($pwd, $user['password']);
             }
-
         } catch (Exception $e) {
         }
 
@@ -559,20 +404,18 @@ class DbEgyTalk
     }
 
     /**
-     * Uppdaterar lösenorder
+     * Uppdaterar lösenord
      *
-     * @param  $uid      användarens uid
-     * @param  $oldpwd   Nuvarande lösenord
-     * @param  $pwd      Nytt lösenord
-     * @return true om uppdateringen lyckades
+     * @param  int $uid       Användarens ID
+     * @param  string $oldpwd Nuvarande lösenord
+     * @param  string $pwd    Nytt lösenord
+     * @return bool           true om uppdateringen lyckades
      */
-    function setPassword($uid, $oldpwd, $pwd)
+    public function setPassword($uid, $oldpwd, $pwd)
     {
         $success = false;
         if ($this->verifyPassword($uid, $oldpwd)) {
-
             try {
-
                 $newHash = password_hash($pwd, PASSWORD_DEFAULT);
                 $stmt = $this->db->prepare("UPDATE users SET password = :pwd WHERE id = :uid");
                 $stmt->bindValue(":pwd", $newHash);
@@ -586,14 +429,27 @@ class DbEgyTalk
         return $success;
     }
 
-    function updateProfilePicture($uid, $path)
+    /**
+     * Uppdaterar användarens profilbild
+     * 
+     * @param  int $uid      Användarens ID
+     * @param  string $path  Sökväg till bilden
+     * @return bool          true om uppdateringen lyckades
+     */
+    public function updateProfilePicture($uid, $path)
     {
         $stmt = $this->db->prepare("UPDATE users SET pfps = :path WHERE id = :uid");
         $stmt->execute([':path' => $path, ':uid' => (int) $uid]);
         return $stmt->rowCount() > 0;
     }
 
-    function getProfilePicture($uid)
+    /**
+     * Hämta användarens profilbild
+     * 
+     * @param  int $uid  Användarens ID
+     * @return string    Sökväg till profilbilden
+     */
+    public function getProfilePicture($uid)
     {
         $stmt = $this->db->prepare("SELECT pfps FROM users WHERE id = :uid");
         $stmt->execute([':uid' => (int) $uid]);
@@ -602,25 +458,26 @@ class DbEgyTalk
 
     /**
      * Hämtar alla trådar (posts) från databasen
-     * @return array Lista med trådar (assoc arrays)
+     * 
+     * @return array Lista med trådar (max 50)
      */
     public function getAllThreads()
     {
         try {
             $stmt = $this->db->prepare("
-            SELECT 
-                t.id AS thread_id,
-                t.user_id,
-                t.content,
-                t.created_at,
-                u.username,
-                u.display_name,
-                (SELECT COUNT(*) FROM comments c WHERE c.thread_id = t.id) AS comment_count
-            FROM threads t
-            LEFT JOIN users u ON t.user_id = u.id
-            ORDER BY t.created_at DESC
-            LIMIT 50
-        ");
+                SELECT 
+                    t.id AS thread_id,
+                    t.user_id,
+                    t.content,
+                    t.created_at,
+                    u.username,
+                    u.display_name,
+                    (SELECT COUNT(*) FROM comments c WHERE c.thread_id = t.id) AS comment_count
+                FROM threads t
+                LEFT JOIN users u ON t.user_id = u.id
+                ORDER BY t.created_at DESC
+                LIMIT 50
+            ");
 
             $stmt->execute();
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -632,14 +489,18 @@ class DbEgyTalk
 
     /**
      * Lägger till en ny tråd (post)
+     * 
+     * @param  int $user_id    Användarens ID
+     * @param  string $content Innehållet i posten
+     * @return bool            true om det lyckades
      */
     public function addThread($user_id, $content)
     {
         try {
             $stmt = $this->db->prepare("
-            INSERT INTO threads (user_id, content, created_at)
-            VALUES (:uid, :content, NOW())
-        ");
+                INSERT INTO threads (user_id, content, created_at)
+                VALUES (:uid, :content, NOW())
+            ");
             $stmt->execute([
                 ':uid' => (int) $user_id,
                 ':content' => $content
@@ -655,23 +516,26 @@ class DbEgyTalk
     }
 
     /**
-     * Hämtar alla kommentarer för en given tråd
+     * Hämtar alla kommentarer för en tråd
+     * 
+     * @param  int $thread_id Trådens ID
+     * @return array          Lista med kommentarer
      */
     public function getCommentsForThread($thread_id)
     {
         try {
             $stmt = $this->db->prepare("
-            SELECT 
-                c.id,
-                c.content,
-                c.created_at,
-                u.username,
-                u.display_name
-            FROM comments c
-            LEFT JOIN users u ON c.user_id = u.id
-            WHERE c.thread_id = :tid
-            ORDER BY c.created_at ASC
-        ");
+                SELECT 
+                    c.id,
+                    c.content,
+                    c.created_at,
+                    u.username,
+                    u.display_name
+                FROM comments c
+                LEFT JOIN users u ON c.user_id = u.id
+                WHERE c.thread_id = :tid
+                ORDER BY c.created_at ASC
+            ");
             $stmt->execute([':tid' => (int) $thread_id]);
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
         } catch (PDOException $e) {
@@ -681,15 +545,20 @@ class DbEgyTalk
     }
 
     /**
-     * Lägger till en kommentar
+     * Lägger till en kommentar på en tråd
+     * 
+     * @param  int $thread_id    Trådens ID
+     * @param  int $user_id      Användarens ID
+     * @param  string $content   Kommentarens innehål
+     * @return bool              true om det lyckades
      */
     public function addComment($thread_id, $user_id, $content)
     {
         try {
             $stmt = $this->db->prepare("
-            INSERT INTO comments (thread_id, user_id, content, created_at)
-            VALUES (:tid, :uid, :content, NOW())
-        ");
+                INSERT INTO comments (thread_id, user_id, content, created_at)
+                VALUES (:tid, :uid, :content, NOW())
+            ");
             $stmt->execute([
                 ':tid' => (int) $thread_id,
                 ':uid' => (int) $user_id,

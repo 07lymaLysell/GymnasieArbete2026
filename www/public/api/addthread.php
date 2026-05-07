@@ -1,5 +1,6 @@
 <?php
-// No whitespace or blank lines BEFORE this line!
+session_start();
+
 ini_set('display_errors', '0');
 ini_set('display_startup_errors', '0');
 error_reporting(E_ALL);
@@ -21,8 +22,8 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 
 try {
-    $postToken = $_POST['CSRFToken'] ?? '';
-    if (empty($_postToken) || !isset($_Session['CRSFToken']) || $postToken !== $_SESSION['CSRFToken']) {
+    $_postToken = $_POST['CSRFToken'] ?? '';
+    if (empty($_postToken) || !isset($_SESSION['CSRFToken']) || $_postToken !== $_SESSION['CSRFToken']) {
         echo json_encode(['success' => false, 'message' => 'inte okej (CSRFToken matchar ej']);
         exit;
     }

@@ -16,26 +16,25 @@
         time: string;
     }
 
-    let user: any = null;
-    authStore.subscribe((v) => (user = v.user));
-
-    let conversations: Conversation[] = [];
-    let selectedConv: Conversation | null = null;
-    let messageText = "";
-    let messages: Msg[] = [];
-
-    let searchTerm = "";
+    let user = $state<any>(null);
+    let conversations = $state<Conversation[]>([]);
+    let selectedConv = $state<Conversation | null>(null);
+    let messageText = $state("");
+    let messages = $state<Msg[]>([]);
+    let searchTerm = $state("");
 
     // derived list based on search term
-    $: filteredConversations = conversations.filter((c) => {
-        const nameMatch = c.display_name
-            .toLowerCase()
-            .includes(searchTerm.toLowerCase());
-        const msgMatch = c.message
-            .toLowerCase()
-            .includes(searchTerm.toLowerCase());
-        return searchTerm === "" || nameMatch || msgMatch;
-    });
+    let filteredConversations = $derived(
+        conversations.filter((c) => {
+            const nameMatch = c.display_name
+                .toLowerCase()
+                .includes(searchTerm.toLowerCase());
+            const msgMatch = c.message
+                .toLowerCase()
+                .includes(searchTerm.toLowerCase());
+            return searchTerm === "" || nameMatch || msgMatch;
+        }),
+    );
 
     async function loadConversations() {
         if (!user) return;
@@ -98,6 +97,13 @@
         loadMessages(conv.other_id);
     }
 
+    $effect(() => {
+        const unsubscribe = authStore.subscribe((v) => {
+            user = v.user;
+        });
+        return unsubscribe;
+    });
+
     onMount(async () => {
         await loadConversations();
 
@@ -146,6 +152,7 @@
             {#each filteredConversations as conv}
                 <!-- svelte-ignore a11y_click_events_have_key_events -->
                 <!-- svelte-ignore a11y_no_static_element_interactions -->
+                <!-- svelte-ignore event_directive_deprecated -->
                 <div
                     class="conv-item"
                     class:active={selectedConv?.other_id === conv.other_id}
@@ -193,6 +200,7 @@
 
                 <div class="chat-input">
                     <!-- svelte-ignore element_invalid_self_closing_tag -->
+                    <!-- svelte-ignore event_directive_deprecated -->
                     <textarea
                         bind:value={messageText}
                         placeholder="Skriv ett meddelande..."
@@ -202,6 +210,7 @@
                             !e.shiftKey &&
                             (e.preventDefault(), sendMessage())}
                     />
+                    <!-- svelte-ignore event_directive_deprecated -->
                     <button
                         on:click={sendMessage}
                         disabled={!messageText.trim()}

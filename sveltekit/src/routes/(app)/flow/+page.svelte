@@ -28,13 +28,17 @@
     let threadComments = $state<Record<number, Comment[]>>({});
     let commentText = $state<Record<number, string>>({});
     let isPosting = $state(false);
+    let csrfToken = $state("");
 
     authStore.subscribe((val) => {
         user = val.user;
     });
 
-    onMount(() => {
+    onMount(async () => {
         loadThreads();
+        const res = await fetch("/api/get-token.php");
+        const data = await res.json();
+        csrfToken = data.csrfToken;
     });
 
     async function loadThreads() {
@@ -76,6 +80,7 @@
                 body: new URLSearchParams({
                     uid: String(user.uid),
                     content: newPostContent,
+                    CSRFToken: csrfToken,
                 }),
             });
             const data = await response.json();
@@ -102,6 +107,7 @@
                     thread_id: String(threadId),
                     uid: String(user.uid),
                     content: content,
+                    CSRFToken: csrfToken,
                 }),
             });
             const data = await response.json();

@@ -3,18 +3,25 @@
     import { authStore } from "$lib/stores/auth";
     import { goto } from "$app/navigation";
 
-    let user: any = null;
-    let postText = "";
-    let stats = { posts: 0, friends: 0, comments: 0 };
-    let loading = true;
-    let savingPost = false;
-    let statusMessage = "";
-
+    let user = $state<any>(null);
+    let postText = $state("");
+    let stats = $state({ posts: 0, friends: 0, comments: 0 });
+    let loading = $state(true);
+    let savingPost = $state(false);
+    let statusMessage = $state("");
+    let csrfToken = $state("");
     onMount(() => {
-        const unsubscribe = authStore.subscribe((auth) => {
+        const unsubscribe = authStore.subscribe(async (auth) => {
+            //specail case för autch sub
+            // Gör denna async
             if (auth?.isLoggedIn && auth.user) {
                 user = auth.user;
                 loadDashboardStats();
+
+                // HÄMTA TOKEN HÄR
+                const res = await fetch("/api/get-token.php");
+                const data = await res.json();
+                csrfToken = data.csrfToken;
             } else {
                 goto("/");
             }
@@ -79,6 +86,7 @@
             const formData = new FormData();
             formData.append("uid", String(user.uid));
             formData.append("content", content);
+            formData.append("CSRFToken", csrfToken);
 
             const res = await fetch("/api/addthread.php", {
                 method: "POST",
@@ -114,7 +122,8 @@
                     user?.username ||
                     "vän"}!
             </h1>
-            <p class="lead">Din översikt är uppdaterad med ditt konto.</p>
+
+            <!-- <p class="lead">Din översikt är uppdaterad med ditt konto.</p> -->
         </div>
 
         {#if loading}
@@ -135,7 +144,7 @@
             ></textarea>
             <button
                 class="post-btn"
-                on:click={createPost}
+                onclick={createPost}
                 disabled={savingPost || !postText.trim()}
             >
                 {savingPost ? "Publicerar..." : "Publicera"}
@@ -167,7 +176,7 @@
             </p>
         </section>
 
-        <section class="card summary-card">
+        <!-- <section class="card summary-card">
             <h3>Hur ser det ut?</h3>
             <p>
                 {#if stats.posts > 0}
@@ -183,7 +192,7 @@
                 Du har {stats.friends}
                 {stats.friends === 1 ? "vän" : "vänner"} anslutna till ditt konto.
             </p>
-        </section>
+        </section> -->
     </div>
 </main>
 
@@ -210,7 +219,6 @@
         margin: 0;
     }
 
-    .lead,
     .subtitle {
         color: #4a5568;
         margin: 6px 0 0;
@@ -236,10 +244,10 @@
 
     .create-post h2,
     .stats-panel h2,
-    .summary-card h3 {
+   /* .summary-card h3 {
         margin: 0 0 12px;
         font-size: 1.2rem;
-    }
+    }*/
 
     .description {
         margin: 0 0 14px;
@@ -309,11 +317,12 @@
         font-size: 0.95rem;
     }
 
-    .summary-card p {
+    /*  .summary-card p {
         margin: 0 0 12px;
         color: #4a5568;
         line-height: 1.6;
     }
+    */
 
     .status-message {
         margin-top: 12px;
