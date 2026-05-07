@@ -21,6 +21,13 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 
 try {
+    $postToken = $_POST['CSRFToken'] ?? '';
+    if (empty($_postToken) || !isset($_Session['CRSFToken']) || $postToken !== $_SESSION['CSRFToken']) {
+        echo json_encode(['success' => false, 'message' => 'inte okej (CSRFToken matchar ej']);
+        exit;
+    }
+
+
     require_once __DIR__ . '/../../model/DbEgyTalk.php';
 
     if (!class_exists('DbEgyTalk')) {
