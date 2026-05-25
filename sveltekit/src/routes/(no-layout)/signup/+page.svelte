@@ -1,65 +1,13 @@
 <script lang="ts">
-    import { goto } from "$app/navigation";
+    import { enhance } from "$app/forms";
+    import { page } from "$app/stores";
 
-    // Formdata
-    let firstname = "";
-    let surname = "";
-    let username = "";
-    let email = "";
-    let password = "";
-    let loading = false;
-    let message = "";
-    let messageType = ""; // 'success' eller 'error'
-
-    // Hanterar registrering
-    async function handleSignup(e: SubmitEvent) {
-        e.preventDefault();
-        loading = true;
-        message = "";
-
-        try {
-            // Skapa FormData för att skicka till servern
-            const formData = new FormData();
-            formData.append("firstname", firstname);
-            formData.append("surname", surname);
-            formData.append("username", username);
-            formData.append("password", password);
-            formData.append("email", email);
-
-            // Skicka POST-request till PHP API:et
-            const response = await fetch("http://localhost/api/adduser.php", {
-                method: "POST",
-                body: formData,
-            });
-
-            const data = await response.json();
-
-            if (data.success) {
-                messageType = "success";
-                message = data.message;
-                // Rensa formulären
-                firstname = "";
-                surname = "";
-                username = "";
-                email = "";
-                password = "";
-                // Gå till login eller main efter 2 sekunder
-                setTimeout(() => {
-                    goto("/");
-                }, 2000);
-            } else {
-                messageType = "error";
-                message = data.message;
-            }
-        } catch (error) {
-            messageType = "error";
-            message =
-                "Ett fel uppstod: " +
-                (error instanceof Error ? error.message : String(error));
-        } finally {
-            loading = false;
-        }
-    }
+    let firstname = $state("");
+    let surname = $state("");
+    let username = $state("");
+    let email = $state("");
+    let password = $state("");
+    let loading = $state(false);
 </script>
 
 <svelte:head>
@@ -79,40 +27,59 @@
     <div class="login-container">
         <h2>Registrering</h2>
 
-        {#if message}
-            <div class="message {messageType}">
-                {message}
+        {#if $page.form?.message}
+            <div
+                class="message {$page.form.message.includes('redan') ||
+                $page.form.message.includes('felaktig')
+                    ? 'error'
+                    : 'success'}"
+            >
+                {$page.form.message}
             </div>
         {/if}
 
-        <form onsubmit={handleSignup}>
+        <form
+            method="POST"
+            use:enhance={() => {
+                loading = true;
+                return async ({ update }) => {
+                    loading = false;
+                    await update();
+                };
+            }}
+        >
             <input
                 type="text"
                 placeholder="Förnamn"
+                name="firstname"
                 bind:value={firstname}
                 required
             />
             <input
                 type="text"
                 placeholder="Efternamn"
+                name="surname"
                 bind:value={surname}
                 required
             />
             <input
                 type="text"
                 placeholder="Användarnamn"
+                name="username"
                 bind:value={username}
                 required
             />
             <input
                 type="text"
                 placeholder="Email"
+                name="email"
                 bind:value={email}
                 required
             />
             <input
                 type="password"
                 placeholder="Lösenord (min 6 tecken)"
+                name="password"
                 bind:value={password}
                 required
             />

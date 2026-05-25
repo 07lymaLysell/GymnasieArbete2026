@@ -18,7 +18,7 @@
                 user = auth.user;
                 loadDashboardStats();
 
-                // HÄMTA TOKEN HÄR
+                // HÄMTA csrf TOKEN här
                 const res = await fetch("/api/get-token.php");
                 const data = await res.json();
                 csrfToken = data.csrfToken;

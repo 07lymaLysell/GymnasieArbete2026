@@ -24,7 +24,7 @@
     let newUsername = $state("");
     let editMessage = $state("");
     let editingUsername = $state(false);
-
+    let newEmail = $state("");
     // --- DERIVED STATE ---
     // Ersätter den gamla reaktiva fullName-logiken
     let fullName = $derived.by(() => {
@@ -122,6 +122,18 @@
             changing = false;
             setTimeout(() => (changeMessage = ""), 3000);
         }
+    }
+
+    async function saveEmail() {
+        const res = await fetch("http://localhost/api/upd-email.php", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                uid: user.uid,
+                email: newEmail.trim(),
+            }),
+        });
+        const data = await res.json();
     }
 
     async function saveUsername() {
@@ -302,6 +314,19 @@
                                     style="width:100%; margin-top:6px; padding:8px; border-radius:6px; border:1px solid #ddd;"
                                 />
                             </label>
+
+                            <label>
+                                Email
+                                <input
+                                    type="text"
+                                    bind:value={newEmail}
+                                    placeholder="ny email"
+                                />
+                            </label>
+
+                            <button type="button" onclick={saveEmail}>
+                                {editingUsername ? "Sparar..." : "Spara email"}
+                            </button>
 
                             <div
                                 style="margin-top:10px; display:flex; gap:8px; align-items:center;"

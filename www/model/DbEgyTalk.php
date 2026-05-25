@@ -125,6 +125,50 @@ class DbEgyTalk
             return false;
         }
     }
+    public function isEmailTakenByOther($email, $uid)
+    {
+        return false;
+    }
+
+
+
+    public function updateEmail($uid, $email)
+    {
+        $email = trim(filter_var($email, FILTER_UNSAFE_RAW));
+        if ($email === '' || strlen($email) < 11 || strlen($email) > 30) {
+            return false;
+        }
+
+        try {
+            $stmt = $this->db->prepare("SELECT email FROM users WHERE id = :uid");
+            $stmt->bindValue(":uid", (int) $uid, PDO::PARAM_INT);
+            $stmt->execute();
+            $existing = $stmt->fetch(PDO::FETCH_ASSOC);
+            if (!$existing) {
+                return false;
+            }
+
+            if ($existing['email'] === $email) {
+                return true;
+            }
+
+            if ($this->isemailTakenByOther($email, $uid)) {
+                return false;
+            }
+
+            $stmt = $this->db->prepare("UPDATE users SET email = :email WHERE id = :uid");
+            $stmt->bindValue(":email", $email);
+            $stmt->bindValue(":uid", (int) $uid, PDO::PARAM_INT);
+            $stmt->execute();
+            return $stmt->rowCount() > 0;
+        } catch (Exception $e) {
+            return false;
+        }
+    }
+
+
+
+
 
     public function updateUsername($uid, $username)
     {

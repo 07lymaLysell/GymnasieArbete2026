@@ -4,7 +4,7 @@
  * ====================================
  * Syftet: Låta en användare ändra sitt användarnamn
  * HTTP-metod: POST
- * Indata: uid (användar-ID), username (nytt användarnamn) - som JSON i request body
+ * Indata: uid (användar-ID), email (nytt användarnamn) - som JSON i request body
  * Utdata: JSON med success-status och meddelande
  * SÄKERHETSPROBLEM: Ingen autentisering - kan ändra vilken users namn som helst!
  */
@@ -22,9 +22,9 @@ $data = json_decode(file_get_contents('php://input'), true) ?? [];
 if (
     $_SERVER['REQUEST_METHOD'] !== 'POST' ||
     empty($data['uid']) ||
-    empty($data['username']) ||
-    strlen(trim($data['username'])) < 3 ||      // Användarnamn måste vara minst 3 tecken
-    strlen(trim($data['username'])) > 30        // Och maximalt 30 tecken
+    empty($data['email']) ||
+    strlen(trim($data['email'])) < 9 ||      // Användarnamn måste vara minst 3 tecken
+    strlen(trim($data['email'])) > 30        // Och maximalt 30 tecken
 ) {
     echo json_encode(['success' => false, 'message' => 'Ogiltigt användarnamn eller förfrågan']);
     exit;
@@ -35,21 +35,21 @@ require '../../model/DbEgyTalk.php';
 $db = new DbEgyTalk();
 
 // ========== RENSA INDATA ==========
-$username = trim($data['username']);
+$email = trim($data['email']);
 $uid = (int) $data['uid'];
 
 // ========== KONTROLL: Verifiera att användarnamnet inte redan är taget (av annan) ==========
-if ($db->isUsernameTakenByOther($username, $uid)) {
+if ($db->isEmailTakenByOther($email, $uid)) {
     echo json_encode(['success' => false, 'message' => 'Användarnamnet är redan upptaget']);
     exit;
 }
 
 // ========== DATABAS-OPERATION: Uppdatera användarnamnet ==========
-$ok = $db->updateUsername($uid, $username);
+$ok = $db->updateEmail($uid, $email);
 
 // ========== RESULTAT: Returnera slutresultat ==========
 echo json_encode([
     'success' => $ok,
     'message' => $ok ? 'Användarnamn uppdaterat' : 'Kunde inte uppdatera användarnamn',
-    'username' => $username,
+    'email' => $email,
 ]);

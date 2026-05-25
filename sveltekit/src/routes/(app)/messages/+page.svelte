@@ -1,6 +1,8 @@
 <script lang="ts">
     import { onMount } from "svelte";
     import { authStore } from "$lib/stores/auth";
+    import ConversationList from "$lib/components/ConversationList.svelte";
+    import ChatWindow from "$lib/components/ChatWindow.svelte";
 
     interface Conversation {
         other_id: number;
@@ -117,7 +119,6 @@
                 if (conv) {
                     selectConversation(conv);
                 } else {
-                    // no conversation yet (maybe no messages), still try to load messages
                     selectedConv = {
                         other_id: other,
                         display_name: "",
@@ -139,91 +140,22 @@
     </header>
 
     <div class="messages-layout">
-        <!-- Vänster konversationslista -->
-        <div class="conv-list">
-            <div class="search-box">
-                <input
-                    type="text"
-                    bind:value={searchTerm}
-                    placeholder="Sök personer eller meddelanden..."
-                />
-            </div>
+        <ConversationList
+            {conversations}
+            {filteredConversations}
+            {selectedConv}
+            {searchTerm}
+            onSearchChange={(term) => (searchTerm = term)}
+            onSelectConversation={selectConversation}
+        />
 
-            {#each filteredConversations as conv}
-                <!-- svelte-ignore a11y_click_events_have_key_events -->
-                <!-- svelte-ignore a11y_no_static_element_interactions -->
-                <!-- svelte-ignore event_directive_deprecated -->
-                <div
-                    class="conv-item"
-                    class:active={selectedConv?.other_id === conv.other_id}
-                    on:click={() => selectConversation(conv)}
-                >
-                    <img
-                        src="/assets/pfp.png"
-                        alt={conv.display_name}
-                        class="conv-avatar"
-                    />
-                    <div class="conv-info">
-                        <div class="conv-name">{conv.display_name}</div>
-                        <div class="conv-last">{conv.message}</div>
-                    </div>
-                    <div class="conv-meta">
-                        <div class="conv-time">{conv.created_at}</div>
-                    </div>
-                </div>
-            {/each}
-        </div>
-
-        <!-- Höger: öppen konversation -->
-        <div class="chat-area">
-            {#if selectedConv}
-                <div class="chat-header">
-                    <img
-                        src="/assets/pfp.png"
-                        alt={selectedConv.display_name}
-                        class="chat-avatar"
-                    />
-                    <div>
-                        <h3>{selectedConv.display_name}</h3>
-                        <span>@{selectedConv.username}</span>
-                    </div>
-                </div>
-
-                <div class="messages-container">
-                    {#each messages as msg}
-                        <div class="message" class:from-me={msg.fromMe}>
-                            <div class="msg-bubble">{msg.text}</div>
-                            <div class="msg-time">{msg.time}</div>
-                        </div>
-                    {/each}
-                </div>
-
-                <div class="chat-input">
-                    <!-- svelte-ignore element_invalid_self_closing_tag -->
-                    <!-- svelte-ignore event_directive_deprecated -->
-                    <textarea
-                        bind:value={messageText}
-                        placeholder="Skriv ett meddelande..."
-                        rows="1"
-                        on:keydown={(e) =>
-                            e.key === "Enter" &&
-                            !e.shiftKey &&
-                            (e.preventDefault(), sendMessage())}
-                    />
-                    <!-- svelte-ignore event_directive_deprecated -->
-                    <button
-                        on:click={sendMessage}
-                        disabled={!messageText.trim()}
-                    >
-                        Skicka
-                    </button>
-                </div>
-            {:else}
-                <div class="no-chat-selected">
-                    <p>Välj en konversation för att börja prata</p>
-                </div>
-            {/if}
-        </div>
+        <ChatWindow
+            {selectedConv}
+            {messages}
+            {messageText}
+            onMessageChange={(text) => (messageText = text)}
+            onSendMessage={sendMessage}
+        />
     </div>
 </main>
 
@@ -259,190 +191,9 @@
         box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
     }
 
-    .conv-list {
-        width: 340px;
-        border-right: 1px solid #eee;
-        overflow-y: auto;
-        background: #fafafa;
-    }
-
-    .search-box {
-        padding: 16px;
-        border-bottom: 1px solid #eee;
-    }
-
-    .search-box input {
-        width: 100%;
-        padding: 10px 14px;
-        border: 1px solid #ddd;
-        border-radius: 10px;
-        font-size: 0.95rem;
-    }
-
-    .conv-item {
-        display: flex;
-        padding: 14px 16px;
-        border-bottom: 1px solid #eee;
-        cursor: pointer;
-        transition: background 0.15s;
-    }
-
-    .conv-item:hover,
-    .conv-item.active {
-        background: #f0f4ff;
-    }
-
-    .conv-avatar {
-        width: 48px;
-        height: 48px;
-        border-radius: 50%;
-        object-fit: cover;
-        margin-right: 12px;
-    }
-
-    .conv-info {
-        flex: 1;
-        min-width: 0;
-    }
-
-    .conv-name {
-        font-weight: 600;
-        margin-bottom: 3px;
-    }
-
-    .conv-last {
-        color: #666;
-        font-size: 0.9rem;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-
-    .conv-meta {
-        text-align: right;
-        font-size: 0.82rem;
-        color: #888;
-    }
-
-    .chat-area {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-    }
-
-    .chat-header {
-        padding: 16px;
-        border-bottom: 1px solid #eee;
-        display: flex;
-        align-items: center;
-        gap: 12px;
-    }
-
-    .chat-avatar {
-        width: 44px;
-        height: 44px;
-        border-radius: 50%;
-    }
-
-    .chat-header h3 {
-        margin: 0;
-        font-size: 1.1rem;
-    }
-
-    .chat-header span {
-        color: #777;
-        font-size: 0.9rem;
-    }
-
-    .messages-container {
-        flex: 1;
-        padding: 20px;
-        overflow-y: auto;
-        display: flex;
-        flex-direction: column;
-        gap: 16px;
-    }
-
-    .message {
-        max-width: 70%;
-        align-self: flex-start;
-    }
-
-    .message.from-me {
-        align-self: flex-end;
-    }
-
-    .msg-bubble {
-        padding: 12px 16px;
-        border-radius: 18px;
-        background: #e5efff;
-        line-height: 1.4;
-    }
-
-    .message.from-me .msg-bubble {
-        background: #2b6cb0;
-        color: white;
-    }
-
-    .msg-time {
-        font-size: 0.75rem;
-        color: #aaa;
-        margin-top: 4px;
-        text-align: right;
-    }
-
-    .chat-input {
-        padding: 16px;
-        border-top: 1px solid #eee;
-        display: flex;
-        gap: 12px;
-        background: #f9f9f9;
-    }
-
-    .chat-input textarea {
-        flex: 1;
-        padding: 12px 16px;
-        border: 1px solid #ddd;
-        border-radius: 22px;
-        resize: none;
-        font-size: 1rem;
-        line-height: 1.4;
-        max-height: 120px;
-    }
-
-    .chat-input button {
-        background: #2b6cb0;
-        color: white;
-        border: none;
-        padding: 0 24px;
-        border-radius: 22px;
-        cursor: pointer;
-        font-weight: 600;
-    }
-
-    .chat-input button:disabled {
-        background: #ccc;
-        cursor: not-allowed;
-    }
-
-    .no-chat-selected {
-        flex: 1;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: #888;
-        font-size: 1.1rem;
-    }
-
     @media (max-width: 900px) {
         .messages-layout {
             flex-direction: column;
-        }
-        .conv-list {
-            width: 100%;
-            max-height: 40vh;
-            border-right: none;
-            border-bottom: 1px solid #eee;
         }
     }
 </style>

@@ -1,26 +1,38 @@
 <?php
-session_start();
+/**
+ * API-ENDPOINT: Registrera ny användare
+ * =====================================
+ * Syftet: Motta registreringsdata från frontend och skapa ett nytt användarkonto
+ * HTTP-metod: POST
+ * Indata: firstname, surname, username, password, email
+ * Utdata: JSON med success-status och meddelande
+ */
 
-// CORS-headers - tillåt requests från SvelteKit
+session_start(); // Starta PHP-session för CSRF-hantering
+
+// ========== CORS-HEADERS: Tillåt cross-origin requests från SvelteKit ==========
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: POST, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type');
-header('Content-Type: application/json');
+header('Content-Type: application/json'); // Sätt svarsformat till JSON
 
-// Hantera preflight-request
+// Hantera preflight-request (webbläsare skickar OPTIONS före POST)
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);
     exit;
 }
 
+// ========== INLADDNING AV DATABASKLASS ==========
 include_once('../../model/DbEgyTalk.php');
 $db = new DbEgyTalk();
+
+// Standardsvar (blir överskrivit om registreringen lyckas)
 $result = [
     'success' => false,
     'message' => 'Kunde inte lägga till användare'
 ];
 
-// 1. Kontrollera att alla obligatoriska fält finns med
+// ========== VALIDERING 1: Kontrollera att alla obligatoriska fält finns och inte är tomma ==========
 if (
     !isset($_POST['firstname'], $_POST['surname'], $_POST['username'], $_POST['password'], $_POST['email']) ||
     empty(trim($_POST['firstname'])) ||
@@ -34,31 +46,32 @@ if (
     exit;
 }
 
-// 2. Rensa och förbered indata
+// ========== RENSA INDATA: Trimma blanksteg från användarens input ==========
 $firstname = trim($_POST['firstname']);
 $surname = trim($_POST['surname']);
 $username = trim($_POST['username']);
 $email = trim($_POST['email']);
 $password = $_POST['password'];
 
-// 3. Kontrollera om användarnamnet redan finns
+// ========== VALIDERING 2: Kontrollera om användarnamnet redan är registrerat ==========
 if ($db->userExists($username)) {
     $result['message'] = 'Användarnamnet är redan taget';
     echo json_encode($result, JSON_UNESCAPED_UNICODE);
     exit;
 }
 
-// 4. Kontrollera lösenordets längd
+// ========== VALIDERING 3: Kontrollera lösenordets längd (minimum 6 tecken) ==========
 if (strlen($password) < 6) {
     $result['message'] = 'Lösenordet måste vara minst 6 tecken långt';
     echo json_encode($result, JSON_UNESCAPED_UNICODE);
     exit;
 }
 
-// 5. Försök skapa användaren
+// ========== DATABAS-OPERATION: Försök skapa användaren ==========
+// DbEgyTalk::addUser() hashar lösenordet och sparar i databasen
 $inserted = $db->addUser($firstname, $surname, $username, $email, $password);
 
-// 6. Sätt resultatet beroende på om det lyckades
+// ========== RESULTAT: Sätt lämpligt svar beroende på om det lyckades ==========
 if ($inserted) {
     $result['success'] = true;
     $result['message'] = 'Användare skapad korrekt!';
@@ -66,4 +79,5 @@ if ($inserted) {
     $result['message'] = 'Kunde inte skapa användare (databasfel ?!?)';
 }
 
+// Skicka JSON-svar tillbaka till frontend
 echo json_encode($result, JSON_UNESCAPED_UNICODE);

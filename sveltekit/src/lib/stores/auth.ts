@@ -14,7 +14,7 @@ export function loginUser(userData: any) {
         isLoggedIn: true,
         user: userData,
     });
-    // Spara i localStorage så man förblir inloggad om sidan laddar om
+    //     sparar i localStorage så man förblir inloggad om sidan laddar om
     localStorage.setItem('user', JSON.stringify(userData));
 }
 
@@ -27,7 +27,7 @@ export function logoutUser() {
     localStorage.removeItem('user');
 }
 
-// Ladda sparad user från localStorage när appen startar
+// ladda sparad user från localStorage när appen startar
 if (typeof window !== 'undefined') {
     const savedUser = localStorage.getItem('user');
     if (savedUser) {
@@ -37,3 +37,13 @@ if (typeof window !== 'undefined') {
         });
     }
 }
+// Tog bort för säkerhets skäll. Bör vara på vid tester 
+//if (typeof window !== 'undefined') {
+//   const savedUser = localStorage.getItem('user');
+//  if (savedUser) {
+//      authStore.set({
+//          isLoggedIn: true,
+//           user: JSON.parse(savedUser),
+//       });
+//   }
+//}
